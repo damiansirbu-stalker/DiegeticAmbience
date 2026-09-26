@@ -97,7 +97,7 @@ The mono fold is the only exception, because the engine positions mono only.
 
 Spawn radius - the min and max in sound_channels.ltx are a different pair from the ones inside the file, and the two are easy to confuse.
 They decide where around you the scheduler drops a sound, not how loud it is once it is there.
-A sound spawned near its own max_distance is placed where the curve reaches zero. Wind was spawning to 200 and inaudible at that range, so it is capped at 130.
+A sound spawned near its own max_distance is placed where the curve falls to silence. Wind was spawning to 200 and inaudible at that range, so it is capped at 130.
 
 Duplicates - an md5 catches the files that are byte for byte the same. Chromaprint catches the ones a hash cannot see, the same recording renamed or run through another encoder.
 Every duplicate pair is reported, and the configuration keeps one copy per recording, so a channel never draws the same sound twice under two names.
@@ -128,10 +128,10 @@ I pull the packs by hand, and licensing.md records the basis for every source.
 
 ------------------------------------------------------------------------------------------------------------------------------------
 
-Engine and scripts
+Engine work
 
 Most of this mod is audio. The rest is engine and script work, planned, for the parts a file cannot carry.
-All of it waits on one engine change: a hook at the point where X-Ray decides to play an ambient sound, so a script can inspect the pick before it plays.
+All of it waits on one engine change, a hook at the point where X-Ray decides to play an ambient sound, so a script can inspect the pick before it plays.
 xlibs carries the API, and the trace consumer is built, both inert until a public engine ships the hook.
 
 Beds on first load - the engine does not render the ambient beds on a fresh run until you have saved and reloaded.
@@ -150,7 +150,7 @@ Modded exes: themrdemonized 20250908 or newer, or AOEngine v0.55 or newer. The f
 No weather mod is required. Stock Anomaly weather and Atmospherics emit the same ambient states, and the soundscape covers all of them
 MCM - optional, for the version footer, the wiring inspector, and the sound player toggle
 
-Install: give DiegeticAmbience higher MO2 priority than any ambient or soundscape mod you keep, so its configuration wins. It has no volume slider; set the level in the game's sound options.
+Install: give DiegeticAmbience higher MO2 priority than any ambient or soundscape mod you keep, so its configuration wins. It has no volume slider. Set the level in the game's sound options.
 
 Compatibility:
 Depends only on xlibs. Install and uninstall mid-save work. Tested: Anomaly 1.5.3, GAMMA, EFP, Zona, Forgotten Zone.
