@@ -158,7 +158,7 @@ Disable (conflict, superseded, problematic):
 - Any ambient or soundscape base - DiegeticAmbience is a complete soundscape that owns the ambient config, so a second base doubles or fights it.
 - On GAMMA that means 304- Dark Signal Weather and Ambiance, 3- Soundscape Overhaul, G.A.M.M.A. Soundscape Overhaul, and G.A.M.M.A. Dark Signal Audio Lite.
 Coexists:
-- DiegeticDread - its companion horror layer: it takes its own sounds out of these base channels, so the two never double.
+- DiegeticDread - an optional horror layer on top: it takes its own sounds out of these base channels, so the two never double.
 It coexists with everything else.
 
 ------------------------------------------------------------------------------------------------------------------------------------
