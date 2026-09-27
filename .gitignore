@@ -9,7 +9,6 @@ tmp/
 # build intermediates (reproducible via tools/merge.py)
 tools/__pycache__/
 tools/hashes.json
-tools/manifest.json
 tools/ledger_detail.json
 tools/merged_beds.json
 tools/classification.json
