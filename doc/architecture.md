@@ -200,7 +200,7 @@ The links below those three are weather-mod-independent. Variants for other weat
 10. Collection coverage: every thunderbolt collection name the active weather mod references resolves in the base game's collection set.
 11. Veto simulation: no channel that the DiegeticDread veto touches may end EMPTY at load.
     The intersection itself is designed coexistence (the veto exists so base channels do not double the director's captured sounds).
-    The veto generator appends `>sounds = ambient\no_sound` to every touched channel (DiegeticDread `build.py:1065-1130`), so a fully-vetoed channel plays silence.
+    The veto generator appends `>sounds = ambient\no_sound` to every touched channel (the diegetic-manager veto emitter, from DiegeticDread's manifest veto rows), so a fully-vetoed channel plays silence.
     A System A bed with no `sounds` key is a load failure (`Environment_misc.cpp:105-108`), which is exactly what that guard prevents.
     The gate FAILs only if a touched channel lacks the guard, and it reports fully-silenced channels as the Spooks-owned boundary picture.
 12. Level coverage: every playable base-game level (`LEVELS_BASE`, the `game_maps_single.ltx` set minus `fake_start`) binds an `ambients/<level>.ltx`.
