@@ -2,7 +2,9 @@
 
 DiegeticAmbience is the atmosphere soundscape for S.T.A.L.K.E.R. Anomaly. Every map, every weather state, and every hour plays a living, audible ambience.
 It is a curated work. The config is the source of truth, authored by hand: the channels, their pools, the presets, the level bindings.
-The pipeline (`tools/merge.py`) is a mastering mill. It materializes, masters, reports, and proves what the config says. It never chooses content.
+The pipeline is `diegetic-manager` (stalker-dev, shared with DiegeticDread); this repo holds only data: `tools/sources.yaml` (registry + accounting registers),
+`tools/manifest.json` (the corpus record: each sound's AUTHOR blob, origin, and source-wiring evidence), and `tools/measure_cache.json`. gather pulls what the config
+references and proves retention; master levels from the author baselines and emits. The machine never chooses content.
 
 The soundscape carries its own dread layer. Distant mutant cries, far gunfire, spooks, and dark ambience play standalone.
 DiegeticDread is optional on top. Its director places dynamic horror cues, and its static veto takes the captured sounds out of the base channels at load, so the two never double.
@@ -25,7 +27,7 @@ Other packs add what the spine lacks or does weakly, always as channels, never a
 - The standalone builds (Dead Air, NLC, OGSE, Prosector, Solyanka, SoP) are mined for specific missing voices only. An original-game recording beats a mod's re-edit at equal quality.
 - Every other pack in the corpus (the RETUNE lineage, RAO, the S2 packs) is a bench. A family enters only by clearly beating the current holder of its slot, by measurement and by ear.
 
-Sources are the registry `tools/sources.py`: one entry per pack (name, path, url, licence, role).
+Sources are the registry in `tools/sources.yaml`: one entry per pack (name, path, url, licence, role); entries are never deleted after gather.
 The licence field is provenance record only, and `doc/licensing.md` holds the basis per source. Sources are pulled locally by hand, and the pipeline never downloads.
 
 ## The channel model
@@ -74,7 +76,7 @@ Division of labor:
 - The ear (the user) closes every contested call through the player (`ui_da_player.script`): family vs family for a slot, the contested middle of a ranking, the density budgets per state class.
 - The pipeline masters and proves. It never chooses.
 
-Every excluded file or folder carries a written reason in the dispositions register (`tools/sources.py`). Nothing is deleted by inference.
+Every excluded file or folder carries a written reason in the dispositions register (`tools/sources.yaml`). Nothing is deleted by inference.
 
 ## Audibility method
 
@@ -119,7 +121,7 @@ Thunder has two homes, matching the engine's two systems:
 2. Strike claps: the engine thunderbolt system.
    The weather mod (Atmospherics) drives timing per weather cycle (`thunderbolt_collection`, `thunderbolt_period`, `thunderbolt_duration` in `weathers/w_*.ltx`).
    The collections resolve to sections in `thunderbolts.ltx`, and each section's `sound =` names a path under `sounds\nature\`.
-   DiegeticAmbience deploys its curated strike recordings AT those vanilla paths (`DEPLOY_EXTRA` in `tools/sources.py`).
+   DiegeticAmbience deploys its curated strike recordings AT those vanilla paths (`deploy_extra` in `tools/sources.yaml`).
    The best claps play with no config, and the weather mod's tuning stays intact.
    The engine plays each strike positioned at the bolt with a speed-of-sound delay and a per-strike attenuation range
    (`thunderbolt.cpp:235`: `snd.play_no_feedback(0, 0, dist / 300.f, &pos, 0, 0, &Fvector2().set(dist / 2, dist * 2.f))`).
@@ -140,12 +142,12 @@ Every outdoor state of every preset wires `effect_0..9`.
 The DLTX overlay `mod_effects_diegeticambience.ltx` points the ten `sound =` keys at vanilla's proven trx recordings, winning over whichever `effects.ltx` is active.
 Those recordings are the same class of repair as the surge beds.
 Their only source is vanilla, which the channel resolver skips, and no channel reads the override.
-So `DEPLOY_EXTRA` rows (`tools/sources.py`) carry the nine `ambient\trx\nature\wind_gust` files the override names.
+So `deploy_extra` rows (`tools/sources.yaml`) carry the nine `ambient\trx\nature\wind_gust` files the override names.
 Underground presets keep empty `effects` (the play block never fires indoors, vanilla parity).
 
 The surge beds are the same class of repair.
 `blowout_channels.ltx` inherited `blowout_impacts`, `blowout_rumble`, `blowout_ambient` and `blowout_flare` muted, because their only source is vanilla itself, which the resolver skips.
-Explicit `DEPLOY_EXTRA` rows (`tools/sources.py`) now pull the 21 vanilla `ambient\trx\blowout` recordings and the four pools play again during emissions.
+Explicit `deploy_extra` rows (`tools/sources.yaml`) now pull the 21 vanilla `ambient\trx\blowout` recordings and the four pools play again during emissions.
 
 ## Deduplication
 
@@ -191,7 +193,7 @@ The links below those three are weather-mod-independent. Variants for other weat
 7. Retention: every spine ambience-scope file and every file of an adopted folder is referenced or covered by a dispositions row.
    All other corpus content carries folder-level dispositions. Anything unaccounted is a FAIL.
 8. Density: per state, the events-per-minute budget holds and the entry-burst stagger holds.
-   Armed 2026-09-09 with per-state-class DENSITY_BUDGET (merge.py) as loud regression ceilings that guard against a future blowout. They sit looser than the ear-calibrated budget.
+   Armed 2026-09-09 with per-state-class density budgets (the tool's ambience gate pack) as loud regression ceilings that guard against a future blowout. They sit looser than the ear-calibrated budget.
    The epm sum uses the round-robin cap (60000/mean(period0..3), one channel per round) but still counts no_sound channels, a known over-count the loose ceilings tolerate.
    Tighten only after the sum excludes silent channels and the ear calibrates real values.
 9. Line cap: no `sounds =` line approaches the 4096-byte ini buffer (`LINE_CAP = 3900`).
@@ -226,25 +228,22 @@ Standalone, nothing is vetoed and the full dread layer plays. With DiegeticDread
 
 ## The mastering mill
 
-`tools/merge.py` reads the hand-written config as its input and does only what needs a machine:
+`diegetic-manager` (stalker-dev) reads the hand-written config as its input and does only what needs a machine, in two phases:
 
-- materialize: pull exactly the referenced files from the corpus packs into `gamedata/sounds`, and remove deployed files nothing references.
-  The run is incremental. The audio-page-hash caches re-master only new files, and the working deployment is edited channel by channel, never wiped.
-- master: `fold` and `level`, per the scoped rules above.
-- meta: emit `da_sound_metadata.script` - each deployed sound's measured profile (`lufs`/`crest`/`peak`/`bv`/`mn`/`mx`) from the level cache and the written blob.
-  The engine never reads it. The mod loads it once into the xsound metadata registry (`xsound.load_meta`) so the player can show a delivered-loudness readout.
-- stage / unstage: materialize a candidate family under `sounds/stage/` so the player can audition it in-game before it is picked.
-- import: the one-time config baseline from a source pack's own sound-routing config (default: the Amplified spine), the bootstrap for a fresh variant.
-  It is a mechanical copy of the pack author's wiring, excluded from `all`, and it refuses over an existing config so it cannot overwrite curation.
-- fmt: the mechanical guard for the config strings. It dedups pool tokens, normalizes preset lines, strips refs to deleted channels, caps spawn distances, and fails any pool line over the cap.
-  Curation decides the sets, and `fmt` guards the strings.
-- report: `fingerprint` (duplicate warnings) and `dead` (silent files), both for the curator.
-- verify / audit: the gate ledger above.
-  Audit is a read-only reach report that flags each wired file ALWAYS_SILENT (max below the nearest spawn roll) or SOMETIMES_SILENT (max inside the roll band).
-  It is bed-aware (System A places at random(min,max), System B at the /2 transform).
-  It reads from the committed `da_sound_metadata`, so the static audit and the in-game trace judge identical numbers, plus the min/felt-far crush summary.
+- `gather DiegeticAmbience [<Source>]` - the only source-bound phase: pull config-referenced files missing from the tree (registry order, pick_skip honored, licence-gated
+  per source), fold stereo and resample off-rate on the way in, capture the AUTHOR blob into `tools/manifest.json` BEFORE anything strips it, and prove retention: every
+  ambience-scope file of each present source is referenced or covered by a `sources.yaml` disposition row, or the gather fails. After the proof, the pack is deletable -
+  the manifest holds the author values forever.
+- `master DiegeticAmbience` - the forever phase, no packs: fmt (the mechanical config-string guard: dedup pool tokens, strip refs to deleted channels, cap spawn distances,
+  fail any pool line over the ini buffer cap), then `level` from the MANIFEST author values - the floors and the ceiling recompute from the author baseline every run, so a
+  constant tunes in both directions and nothing ratchets - then emit `da_sound_metadata.script` (each deployed sound's `lufs`/`crest`/`peak`/`bv`/`mn`/`mx`; the engine
+  never reads it, the mod loads it once into `xsound.load_meta` for the player's delivered-loudness readout), the dead and fingerprint curator reports, the gate ledger
+  above, and the reach audit (bed-aware: System A places at random(min,max), System B at the /2 transform). A file without a verified author blob keeps its bytes verbatim.
+- `stage <Source>:<folder>` / `unstage` - a candidate family under `sounds/stage/` for in-game audition before it is picked.
+- `import <Source>` - the one-time config baseline from a source pack's own sound-routing config, the bootstrap for a fresh variant; refuses over an existing config.
 
-The generator stages of the earlier build (config synthesis, folder-dump grafts, spine path priority, prune-by-inference) are deleted.
+The generator stages of the earlier build (config synthesis, folder-dump grafts, spine path priority, prune-by-inference) are deleted, and the in-place level ratchet with
+them: the old tool read its own last output as the author base, so floors could only rise.
 
 ## Invariants
 
