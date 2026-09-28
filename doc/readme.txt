@@ -116,8 +116,11 @@ Repairs - the stock configuration ships four channel references that resolve to 
 Coverage - 33 levels, 31 presets, 12 ambient states, the same set under stock Anomaly weather and under Atmospherics.
 Every cell of that matrix has to resolve to a real channel with real audio behind it, and the build will not produce a release until it does.
 
-Measurement - ffmpeg does the reading, ebur128 for integrated loudness in broadcast LUFS and astats for crest factor and true peak, with Chromaprint handling identity.
+Measurement - ffmpeg does the reading, ebur128 for integrated loudness in broadcast LUFS and astats for crest factor and true peak.
+ffprobe reads duration, sample rate, and channel count, and Chromaprint handles identity.
 All of it feeds a reconstruction of the two rolloffs and the effects master, so every number in the build refers to what arrives at the player.
+Six values are frozen into each sound and stay readable in game - its loudness, crest, peak, volume, and the near and far distance in its struct.
+The wiring inspector and the sound player read them back to show how loud a sound arrives at a given distance.
 
 Reproducible - I choose the channels and the files by hand, and the config records those choices.
 One command pulls those files from the packs and masters them, so the audio comes out the same every time.
