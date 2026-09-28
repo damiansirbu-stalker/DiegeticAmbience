@@ -1,6 +1,7 @@
 # DiegeticAmbience source licensing
 
-Every source DiegeticAmbience draws sound from, and the basis for using it: the author granted permission, or the addon's license permits it. The readme Credits section derives from this record.
+This lists every source DiegeticAmbience draws sound from. Each entry names the basis for using it, the author's granted permission or the addon's license.
+The readme Credits section derives from this record.
 
 ## Permission
 
