@@ -15,6 +15,10 @@ X-Ray Monolith: https://github.com/themrdemonized/xray-monolith
 
 [ Hero image: diegeticambience-hero.gif - a living ambience for every map, weather, and hour ]
 
+Thank you for the support, I do not need donations. Reviews, ratings, and proper bug reports help.
+An organized group plagiarizes my work, posts daily lies and mass-downvotes my mods everywhere.
+Most modpacks use my work, established projects integrate with it, and downloads near 1 million.
+
 Most of the ambient audio installed in Anomaly is never heard, and fixing that takes every step of the chain:
 which packs to draw from, which sounds inside them to keep, listening to each one, the parameters written into every ogg, the calculation behind those parameters, and the removal of duplicates.
 A lot of the sounds worth hearing are old, from the original games and the standalone builds that came after, and I wanted those in the Zone too.
