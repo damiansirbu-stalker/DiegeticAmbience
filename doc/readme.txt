@@ -161,12 +161,12 @@ Install: give DiegeticAmbience higher MO2 priority than any ambient or soundscap
 
 Compatibility:
 Depends only on xlibs. Install and uninstall mid-save work. Tested: Anomaly 1.5.3, GAMMA, EFP, Zona, Forgotten Zone.
-Disable (conflict, superseded, problematic):
+Drop:
 - Any ambient or soundscape base - DiegeticAmbience is a complete soundscape that owns the ambient config, so a second base doubles or fights it.
 - On GAMMA that means 304- Dark Signal Weather and Ambiance, 3- Soundscape Overhaul, G.A.M.M.A. Soundscape Overhaul, and G.A.M.M.A. Dark Signal Audio Lite.
 Coexists:
 - DiegeticDread - an optional horror layer on top: it takes its own sounds out of these base channels, so the two never double.
-It coexists with everything else.
+Everything else coexists, as long as it extends X-Ray and Anomaly and never overrides them.
 
 ------------------------------------------------------------------------------------------------------------------------------------
 
