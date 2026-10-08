@@ -163,7 +163,7 @@ Compatibility:
 Depends only on xlibs. Install and uninstall mid-save work. Tested: Anomaly 1.5.3, GAMMA, EFP, Zona, Forgotten Zone.
 Drop:
 - Any ambient or soundscape base - DiegeticAmbience is a complete soundscape that owns the ambient config, so a second base doubles or fights it.
-- On GAMMA that means 304- Dark Signal Weather and Ambiance, 3- Soundscape Overhaul, G.A.M.M.A. Soundscape Overhaul, and G.A.M.M.A. Dark Signal Audio Lite.
+- On GAMMA that means 304- Dark Signal Weather and Ambiance and 3- Soundscape Overhaul. G.A.M.M.A. Soundscape Overhaul is a sound-asset pack that overwrites the same files, so keep DiegeticAmbience above it rather than dropping it.
 Coexists:
 - DiegeticDread - an optional horror layer on top: it takes its own sounds out of these base channels, so the two never double.
 Everything else coexists, as long as it extends X-Ray and Anomaly and never overrides them.
