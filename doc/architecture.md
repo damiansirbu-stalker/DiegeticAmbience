@@ -7,7 +7,7 @@ The pipeline is `diegetic-manager` in stalker-dev, and this repo holds only data
 master levels from the author baselines and emits. The machine never chooses content.
 
 The soundscape carries its own dread layer. Distant mutant cries, far gunfire, spooks, and dark ambience play standalone.
-A directed horror layer is optional on top. Its director places dynamic horror cues, and its static veto takes the captured sounds out of the base channels at load, so the two never double.
+A directed horror layer is optional on top. Its director places dynamic horror cues, and its static exclusion takes the captured sounds out of the base channels at load, so the two never double.
 
 ## Content model
 
@@ -199,10 +199,10 @@ The links below those three are weather-mod-independent. Variants for other weat
    Tighten only after the sum excludes silent channels and the ear calibrates real values.
 9. Line cap: no `sounds =` line approaches the 4096-byte ini buffer (`LINE_CAP = 3900`).
 10. Collection coverage: every thunderbolt collection name the active weather mod references resolves in the base game's collection set.
-11. Veto simulation: no channel that the directed horror veto touches may end EMPTY at load.
-    The intersection itself is designed coexistence (the veto exists so base channels do not double the director's captured sounds).
-    The veto generator appends `>sounds = ambient\no_sound` to every touched channel (the diegetic-manager veto emitter, from the horror layer's manifest veto rows).
-    A fully-vetoed channel then plays silence.
+11. Exclusion simulation: no channel that the directed horror exclusion touches may end EMPTY at load.
+    The intersection itself is designed coexistence (the exclusion exists so base channels do not double the director's captured sounds).
+    The exclusion generator appends `>sounds = ambient\no_sound` to every touched channel (the diegetic-manager exclusion emitter, from the horror layer's manifest exclusion rows).
+    A fully-excluded channel then plays silence.
     A System A bed with no `sounds` key is a load failure (`Environment_misc.cpp`), which is exactly what that guard prevents.
     The gate FAILs only if a touched channel lacks the guard, and it reports fully-silenced channels as the Spooks-owned boundary picture.
 12. Level coverage: every playable base-game level (`LEVELS_BASE`, the `game_maps_single.ltx` set minus `fake_start`) binds an `ambients/<level>.ltx`.
@@ -226,7 +226,7 @@ It removes the captured paths with a generated static DLTX overlay: `mod_sound_c
 DLTX applies that overlay to OUR resolved `sound_channels.ltx`.
 A captured path in one of our pools is stripped at load, a fully-captured channel plays silence, and gate 11 proves the composition stays safe.
 That director places the horror, and this config plays the living ambience.
-Standalone, nothing is vetoed and the full dread layer plays. With the horror layer installed, the directed layer replaces the captured subset.
+Standalone, nothing is excluded and the full dread layer plays. With the horror layer installed, the directed layer replaces the captured subset.
 
 ## The mastering mill
 
