@@ -222,9 +222,9 @@ The links below those three are weather-mod-independent. Variants for other weat
 ## Coexistence with the directed horror layer
 
 The directed horror layer captures the dark/horror content from the shared source packs into its own `zs/` tree.
-It removes the captured paths with a generated static DLTX overlay: `mod_sound_channels_diegeticdread.ltx`, individual `<sounds` removals per channel plus a `>sounds = ambient\no_sound` guard.
+It removes its captured sounds with a generated static DLTX overlay: `mod_sound_channels_diegeticdread.ltx`, individual `<sounds` removals per channel plus a `>sounds = ambient\no_sound` guard.
 DLTX applies that overlay to OUR resolved `sound_channels.ltx`.
-A captured path in one of our pools is stripped at load, a fully-captured channel plays silence, and gate 11 proves the composition stays safe.
+A sound of ours in one of our pools is stripped at load, a fully-captured channel plays silence, and gate 11 proves the composition stays safe.
 That director places the horror, and this config plays the living ambience.
 Standalone, nothing is excluded and the full dread layer plays. With the horror layer installed, the directed layer replaces the captured subset.
 
