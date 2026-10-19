@@ -1,4 +1,4 @@
-# sources.yaml - the authored gather config (diegetic-manager reads this; spec 3.1b).
+# sources.yaml - the authored gather config (sound-manager reads this; spec 3.1b).
 # The channel LTX is DA's want-list driver; this file carries the registry and the
 # accounting registers. ORDER IS LOAD-BEARING (materialize pick + provenance rank).
 # Entries are NEVER deleted after gather.
