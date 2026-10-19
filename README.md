@@ -1,6 +1,6 @@
 # DiegeticAmbience: a curated, audible ambient soundscape for STALKER Anomaly
 
-An ambient soundscape built from the original GSC games, the standalone builds that reworked them (Solyanka, OGSR, OGSE, Dead Air, Lost Alpha) and the major soundscape packs, with every file corrected to be audible at the distance the engine places it.
+An ambient soundscape built from the original GSC games, the old era builds that reworked them, and the major soundscape packs, with every file corrected to be audible at the distance the engine places it.
 The channels and their pools are curated by hand, one recording family per voice, and a mastering pipeline folds every file to mono, sets its distance and loudness from ffmpeg measurements, and proves every map plays in every weather state.
 
 [Releases](https://github.com/damiansirbu-stalker/DiegeticAmbience/releases) | [Bugs, suggestions](https://github.com/damiansirbu-stalker/DiegeticAmbience/issues)

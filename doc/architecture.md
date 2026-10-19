@@ -24,7 +24,7 @@ Other packs add what the spine lacks or does weakly, always as channels, never a
 - Immersive Ambience: helicopter and wind reinforcement.
 - Thunder, rebuilt from the spine's thunderbolt corpus plus SO's and AE's thunder folders.
   The distant rumble plays as storm-state ambient channels, and the close claps play through the lightning-strike system at the vanilla strike paths.
-- The standalone builds (Dead Air, NLC, OGSE, Prosector, Solyanka, SoP) are mined for specific missing voices only. An original-game recording beats a mod's re-edit at equal quality.
+- The old era builds are mined for specific missing voices only. An original-game recording beats a re-edit at equal quality.
 - Every other pack in the corpus (the RETUNE lineage, RAO, the S2 packs) is a bench. A family enters only by clearly beating the current holder of its slot, by measurement and by ear.
 
 Sources are the registry in `tools/sources.yaml`, one entry per pack (name, path, url, licence, role). Entries are never deleted after gather.

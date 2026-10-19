@@ -81,8 +81,8 @@ During emissions the four vanilla surge bed channels play again, where the ances
 
 Sources
 
-Classic S.T.A.L.K.E.R. audio - nearly every ambient recording in the Zone descends from GSC's originals, reworked across two decades of standalone builds.
-Solyanka (NS OGSR), OLR, OGSE 0693, Dead Air, Lost Alpha, NLC Improved, Prosector, and Anomaly 1.5.3 itself.
+Classic S.T.A.L.K.E.R. audio - nearly every ambient recording in the Zone descends from GSC's originals, reworked across two decades of old builds and remastered here.
+Those builds, and Anomaly 1.5.3 itself.
 Dark Signal Amplified Soundscape, by Shrike - the level and weather configuration, and the birds.
 It is the only pack that covers all 33 levels, extended maps included, in every Atmospherics state, which is why the configuration is built on it.
 Soundscape Overhaul, by Solarint - the environment core, meaning wind, weather, birds and foliage.
