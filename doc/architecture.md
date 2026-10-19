@@ -2,7 +2,7 @@
 
 DiegeticAmbience is the atmosphere soundscape for S.T.A.L.K.E.R. Anomaly. Every map, every weather state, and every hour plays a living, audible ambience.
 It is a curated work. The config is the source of truth, authored by hand: the channels, their pools, the presets, the level bindings.
-The pipeline is `diegetic-manager` in stalker-dev, and this repo holds only data. `tools/sources.yaml` is the registry plus accounting registers, `tools/manifest.json` the corpus record
+The pipeline is `sound-manager` in stalker-dev, and this repo holds only data. `tools/sources.yaml` is the registry plus accounting registers, `tools/manifest.json` the corpus record
 (each sound's AUTHOR blob, origin, and source-wiring evidence), and `tools/measure_cache.json` the measurement cache. gather pulls what the config references and proves retention.
 master levels from the author baselines and emits. The machine never chooses content.
 
@@ -201,7 +201,7 @@ The links below those three are weather-mod-independent. Variants for other weat
 10. Collection coverage: every thunderbolt collection name the active weather mod references resolves in the base game's collection set.
 11. Exclusion simulation: no channel that the directed horror exclusion touches may end EMPTY at load.
     The intersection itself is designed coexistence (the exclusion exists so base channels do not double the director's captured sounds).
-    The exclusion generator appends `>sounds = ambient\no_sound` to every touched channel (the diegetic-manager exclusion emitter, from the horror layer's manifest exclusion rows).
+    The exclusion generator appends `>sounds = ambient\no_sound` to every touched channel (the sound-manager exclusion emitter, from the horror layer's manifest exclusion rows).
     A fully-excluded channel then plays silence.
     A System A bed with no `sounds` key is a load failure (`Environment_misc.cpp`), which is exactly what that guard prevents.
     The gate FAILs only if a touched channel lacks the guard, and it reports fully-silenced channels as the Spooks-owned boundary picture.
@@ -230,7 +230,7 @@ Standalone, nothing is excluded and the full dread layer plays. With the horror 
 
 ## The mastering mill
 
-`diegetic-manager` (stalker-dev) reads the hand-written config as its input and does only what needs a machine, in two phases:
+`sound-manager` (stalker-dev) reads the hand-written config as its input and does only what needs a machine, in two phases:
 
 - `gather DiegeticAmbience [<Source>]` - the only source-bound phase. It pulls config-referenced files missing from the tree (registry order, pick_skip honored, licence-gated per source).
   On the way in it folds stereo to mono and resamples off-rate. It captures the AUTHOR blob into `tools/manifest.json` before anything strips it.
