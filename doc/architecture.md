@@ -3,7 +3,7 @@
 DiegeticAmbience is the atmosphere soundscape for S.T.A.L.K.E.R. Anomaly. Every map, every weather state, and every hour plays a living, audible ambience.
 It is a curated work. The config is the source of truth, authored by hand: the channels, their pools, the presets, the level bindings.
 The pipeline is `sound-manager` in stalker-dev, and this repo holds only data. `tools/sources.yaml` is the registry plus accounting registers, `tools/manifest.json` the corpus record
-(each sound's AUTHOR blob, origin, and source-wiring evidence), and `tools/measure_cache.json` the measurement cache. gather pulls what the config references and proves retention.
+(each sound's AUTHOR blob and measured facts; resources-alone, no source pack or path), and `tools/measure_cache.json` the measurement cache. gather pulls what the config references and proves retention.
 master levels from the author baselines and emits. The machine never chooses content.
 
 The soundscape carries its own dread layer. Distant mutant cries, far gunfire, spooks, and dark ambience play standalone.
@@ -28,7 +28,7 @@ Other packs add what the spine lacks or does weakly, always as channels, never a
 - Every other pack in the corpus (the RETUNE lineage, RAO, the S2 packs) is a bench. A family enters only by clearly beating the current holder of its slot, by measurement and by ear.
 
 Sources are the registry in `tools/sources.yaml`, one entry per pack (name, path, url, licence, role). Entries are never deleted after gather.
-The licence field is provenance record only, and `doc/licensing.md` holds the basis per source. Sources are pulled locally by hand, and the pipeline never downloads.
+The licence field is a credit record, and `doc/licensing.md` holds the basis per source. Sources are pulled locally by hand, and the pipeline never downloads.
 
 ## The channel model
 
@@ -70,7 +70,7 @@ Three further rules keep many channels from becoming a wall:
 
 Division of labor:
 
-- The curator (assistant) works from evidence: the measurement tables (LUFS, crest, duration, native channel count, rate), the source packs' own wiring, provenance, and the dedup maps.
+- The curator (assistant) works from evidence: the measurement tables (LUFS, crest, duration, native channel count, rate), the source packs' own wiring, and the dedup maps.
   What channel the pack's author bound a file to is evidence. Ignoring it is how thunderclaps ended up in a wind channel.
   The curator drafts family-level A/B proposals, the channel vocabulary, and the wiring plans.
 - The ear (the user) closes every contested call through the player (`ui_da_player.script`): family vs family for a slot, the contested middle of a ranking, the density budgets per state class.
@@ -201,7 +201,7 @@ The links below those three are weather-mod-independent. Variants for other weat
 10. Collection coverage: every thunderbolt collection name the active weather mod references resolves in the base game's collection set.
 11. Exclusion simulation: no channel that the directed horror exclusion touches may end EMPTY at load.
     The intersection itself is designed coexistence (the exclusion exists so base channels do not double the director's captured sounds).
-    The exclusion generator appends `>sounds = ambient\no_sound` to every touched channel (the sound-manager exclusion emitter, from the horror layer's manifest exclusion rows).
+    The hand-authored exclusion overlay carries `>sounds = ambient\no_sound` on every touched channel.
     A fully-excluded channel then plays silence.
     A System A bed with no `sounds` key is a load failure (`Environment_misc.cpp`), which is exactly what that guard prevents.
     The gate FAILs only if a touched channel lacks the guard, and it reports fully-silenced channels as the Spooks-owned boundary picture.
@@ -222,7 +222,7 @@ The links below those three are weather-mod-independent. Variants for other weat
 ## Coexistence with the directed horror layer
 
 The directed horror layer captures the dark/horror content from the shared source packs into its own `zs/` tree.
-It removes its captured sounds with a generated static DLTX overlay: `mod_sound_channels_diegeticdread.ltx`, individual `<sounds` removals per channel plus a `>sounds = ambient\no_sound` guard.
+It removes its captured sounds with a hand-authored static DLTX overlay: `mod_sound_channels_diegeticdread.ltx`, individual `<sounds` removals per channel plus a `>sounds = ambient\no_sound` guard.
 DLTX applies that overlay to OUR resolved `sound_channels.ltx`.
 A sound of ours in one of our pools is stripped at load, a fully-captured channel plays silence, and gate 11 proves the composition stays safe.
 That director places the horror, and this config plays the living ambience.
@@ -266,7 +266,7 @@ The old tool read its own last output as the author base, so floors could only r
 - I8 Deduplicate twice, warn, let the curator resolve.
 - I9 Config closed. The full gate set passes or the build fails.
 - I10 Weather-mod-bound at three vocabularies (ambient states, collection names, effect ids). Stock Anomaly and Atmospherics share all three. Other weather mods need a sweep of all three first.
-- I11 Traceable and licensed. Every deployed sound resolves to its origin, `licensing.md` records the basis for every source, and the readme credits every author.
+- I11 Licensed. The record is resources-alone (no per-sound origin); `licensing.md` records the basis for every source, and the readme credits every author.
 - I12 No audible sound is dropped before the user auditions it.
   Measurement only FLAGS a drop candidate (too long, off-character, past a spectral or loudness bound). It never excludes an audible file on its own.
   The flagged list is loaded into `ui_da_player` as a playlist, the user auditions it, and only then does a file get a DISPOSITIONS `excluded` row.
