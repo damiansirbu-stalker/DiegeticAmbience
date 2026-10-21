@@ -145,7 +145,7 @@ Six values are frozen into each sound and stay readable in game - its loudness, 
 The wiring inspector and the sound player read them back to show how loud a sound arrives at a given distance.
 
 Reproducible - I choose the channels and the files by hand, and the config records those choices.
-One command pulls those files from the packs and masters them, so the audio comes out the same every time.
+The build pulls those files from the packs and masters them, so the audio comes out the same every time.
 Every file in the release traces back to its source pack and the measurement that shaped it.
 
 Offline - none of this runs against your install, and the build downloads nothing.

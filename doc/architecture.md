@@ -242,7 +242,8 @@ Standalone, nothing is excluded and the full dread layer plays. With the horror 
   Then it recomputes from the record's author values, the floors and ceiling from the author baseline every run, so a constant tunes in both directions and nothing ratchets;
   measured values are computed once per audio identity and re-measured only on `--remeasure`. Four per-row dispositions hold: strike/emission/staged files and no-author rows keep
   their bytes unchanged, channel-unwired rows keep the author blob verbatim, and only wired rows with a verified author blob are re-leveled.
-  Then it regenerates `da_sound_metadata.script` - the record itself: the trace display (`lufs`/`crest`/`peak`/`bv`/`mn`/`mx`) beside the persisted tool columns the game never reads.
+  It also fills each row's placement - `band` (`ch_min`/`ch_max`), `indoor`, `height` - from the authored channel LTX (ambience's placement authority), so the record carries the identical placement columns DiegeticDread stores; a sound in no channel (a strike/effect/surge deploy) has none.
+  Then it regenerates `da_sound_metadata.script` - the record itself, the uniform sound schema (`core/manifest.py`): the trace display (`lufs`/`crest`/`peak`/`bv`/`mn`/`mx` plus `ch_min`/`ch_max`/`h`/`indoor`) beside the persisted tool columns the game never reads.
   The engine never reads the file at all. The mod loads it once into `xsound.load_meta` for the delivered-loudness readout.
   It also emits the dead and fingerprint curator reports, the gate ledger above, and the reach audit (bed-aware: System A places at random(min,max), System B at the /2 transform).
   A double refresh writes nothing.
@@ -260,7 +261,7 @@ The old tool read its own last output as the author base, so floors could only r
 ## Invariants
 
 - I1 Scope. Nature/weather ambience, the ambient dread layer, storm thunder. Directed cues are the horror layer's. Emission and psi-storm are their own systems. Strike timing is the weather mod's.
-- I2 The config is authored. Machines master, report, and prove. They never choose content.
+- I2 The config is authored. Machines level, report, and prove. They never choose content.
 - I3 Spine completeness. Every ambience-scope file of the spine, across all its sound systems, is accounted for. Nothing dies silently.
 - I4 One channel, one voice. Single-source pools by default, coherence verified, 15-25 target, 40 cap, roles-menu admission.
 - I5 Density is conserved. The per-state budget and the entry-burst stagger are gates, not advice.
@@ -269,7 +270,7 @@ The old tool read its own last output as the author base, so floors could only r
 - I8 Deduplicate twice, warn, let the curator resolve.
 - I9 Config closed. The full gate set passes or the build fails.
 - I10 Weather-mod-bound at three vocabularies (ambient states, collection names, effect ids). Stock Anomaly and Atmospherics share all three. Other weather mods need a sweep of all three first.
-- I11 Licensed. The record is resources-alone (no per-sound origin); `licensing.md` records the basis for every source, and the readme credits every author.
+- I11 Licensed, one record. The record is resources-alone (no per-sound origin) and is ONE file - `da_sound_metadata.script`, the uniform sound schema shared with DiegeticDread and the voice corpus, the same file the mod loads; no manifest, no measurement cache. `licensing.md` records the basis for every source, and the readme credits every author.
 - I12 No audible sound is dropped before the user auditions it.
   Measurement only FLAGS a drop candidate (too long, off-character, past a spectral or loudness bound). It never excludes an audible file on its own.
   The flagged list is loaded into `ui_da_player` as a playlist, the user auditions it, and only then does a file get a DISPOSITIONS `excluded` row.
