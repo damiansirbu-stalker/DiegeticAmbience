@@ -2,9 +2,10 @@
 
 DiegeticAmbience is the atmosphere soundscape for S.T.A.L.K.E.R. Anomaly. Every map, every weather state, and every hour plays a living, audible ambience.
 It is a curated work. The config is the source of truth, authored by hand: the channels, their pools, the presets, the level bindings.
-The pipeline is `sound-manager` in stalker-dev, and this repo holds only data. `tools/sources.yaml` is the registry plus accounting registers, `tools/manifest.json` the corpus record
-(each sound's AUTHOR blob and measured facts; resources-alone, no source pack or path), and `tools/measure_cache.json` the measurement cache. gather pulls what the config references and proves retention.
-master levels from the author baselines and emits. The machine never chooses content.
+The pipeline is `sound-manager` in stalker-dev, and this repo holds only data. `tools/sources.yaml` is the registry plus accounting registers, and `da_sound_metadata.script` is the
+corpus record AND the runtime trace table, one file (each sound's FULL-PRECISION author blob and measured facts on the row, rejected tombstones in a separate table; resources-alone,
+no source pack or path; no manifest, no measurement cache). intake pulls what the config references and proves retention. refresh levels from the author baselines and regenerates
+the record. The machine never chooses content.
 
 The soundscape carries its own dread layer. Distant mutant cries, far gunfire, spooks, and dark ambience play standalone.
 A directed horror layer is optional on top. Its director places dynamic horror cues, and its static exclusion takes the captured sounds out of the base channels at load, so the two never double.
@@ -27,7 +28,7 @@ Other packs add what the spine lacks or does weakly, always as channels, never a
 - The old era builds are mined for specific missing voices only. An original-game recording beats a re-edit at equal quality.
 - Every other pack in the corpus (the RETUNE lineage, RAO, the S2 packs) is a bench. A family enters only by clearly beating the current holder of its slot, by measurement and by ear.
 
-Sources are the registry in `tools/sources.yaml`, one entry per pack (name, path, url, licence, role). Entries are never deleted after gather.
+Sources are the registry in `tools/sources.yaml`, one entry per pack (name, path, url, licence, role). Entries are never deleted after intake.
 The licence field is a credit record, and `doc/licensing.md` holds the basis per source. Sources are pulled locally by hand, and the pipeline never downloads.
 
 ## The channel model
@@ -230,19 +231,21 @@ Standalone, nothing is excluded and the full dread layer plays. With the horror 
 
 ## The mastering mill
 
-`sound-manager` (stalker-dev) reads the hand-written config as its input and does only what needs a machine, in two phases:
+`sound-manager` (stalker-dev) reads the hand-written config as its input and does only what needs a machine, in two automatic commands:
 
-- `gather DiegeticAmbience [<Source>]` - the only source-bound phase. It pulls config-referenced files missing from the tree (registry order, pick_skip honored, licence-gated per source).
-  On the way in it folds stereo to mono and resamples off-rate. It captures the AUTHOR blob into `tools/manifest.json` before anything strips it.
-  It then proves retention. Each present source's ambience-scope files are all referenced or covered by a `sources.yaml` disposition row. A gap fails the gather.
-  After the proof, the pack is deletable, and the manifest holds the author values forever.
-- `master DiegeticAmbience` - the forever phase, no packs. fmt is the mechanical config-string guard.
+- `intake DiegeticAmbience [<Source>]` - the only source-bound step. It pulls config-referenced files missing from the tree (registry order, pick_skip honored, licence-gated per
+  source, rejected tombstones skipped). On the way in it folds stereo to mono and resamples off-rate. It captures the AUTHOR blob and the measured facts onto the record row before
+  anything strips them. It then proves retention. Each present source's ambience-scope files are all referenced or covered by a `sources.yaml` disposition row. A gap fails the intake.
+  After the gate, the pack is deletable, and the record holds the author values forever.
+- `refresh DiegeticAmbience` - the forever step, no packs. fmt is the mechanical config-string guard.
   It normalizes the config (dedup pool tokens, strip dead-channel refs, cap spawn distances) and fails any pool line over the ini buffer cap.
-  Then `level` recomputes from the MANIFEST author values, the floors and ceiling from the author baseline every run, so a constant tunes in both directions and nothing ratchets.
-  Then it emits `da_sound_metadata.script`, each deployed sound's `lufs`/`crest`/`peak`/`bv`/`mn`/`mx`.
-  The engine never reads it. The mod loads it once into `xsound.load_meta` for the delivered-loudness readout.
+  Then it recomputes from the record's author values, the floors and ceiling from the author baseline every run, so a constant tunes in both directions and nothing ratchets;
+  measured values are computed once per audio identity and re-measured only on `--remeasure`. Four per-row dispositions hold: strike/emission/staged files and no-author rows keep
+  their bytes unchanged, channel-unwired rows keep the author blob verbatim, and only wired rows with a verified author blob are re-leveled.
+  Then it regenerates `da_sound_metadata.script` - the record itself: the trace display (`lufs`/`crest`/`peak`/`bv`/`mn`/`mx`) beside the persisted tool columns the game never reads.
+  The engine never reads the file at all. The mod loads it once into `xsound.load_meta` for the delivered-loudness readout.
   It also emits the dead and fingerprint curator reports, the gate ledger above, and the reach audit (bed-aware: System A places at random(min,max), System B at the /2 transform).
-  A file without a verified author blob keeps its bytes unchanged.
+  A double refresh writes nothing.
 - `stage <Source>:<folder>` / `unstage` - a candidate family under `sounds/stage/` for in-game audition before it is picked.
 - `import <Source>` - the one-time config baseline from a source pack's own sound-routing config, the bootstrap for a fresh variant. It refuses over an existing config.
 
