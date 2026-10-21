@@ -2,7 +2,7 @@
 
 DiegeticAmbience is the atmosphere soundscape for S.T.A.L.K.E.R. Anomaly. Every map, every weather state, and every hour plays a living, audible ambience.
 It is a curated work. The config is the source of truth, authored by hand: the channels, their pools, the presets, the level bindings.
-The pipeline is `sound-manager` in stalker-dev, and this repo holds only data. `tools/sources.yaml` is the registry plus accounting registers, and `da_sound_metadata.script` is the
+The pipeline is `sound-manager` in stalker-dev, and this repo holds only the record and the ogg tree. The authored intake recipe (registry + accounting registers) is PRIVATE in the tool (`sound-manager/private/ambience/recipe.yaml`), never in this public repo, so no source build is named here; `da_sound_metadata.script` is the
 corpus record AND the runtime trace table, one file (each sound's FULL-PRECISION author blob and measured facts on the row, rejected tombstones in a separate table; resources-alone,
 no source pack or path; no manifest, no measurement cache). intake pulls what the config references and proves retention. refresh levels from the author baselines and regenerates
 the record. The machine never chooses content.
@@ -28,7 +28,7 @@ Other packs add what the spine lacks or does weakly, always as channels, never a
 - The old era builds are mined for specific missing voices only. An original-game recording beats a re-edit at equal quality.
 - Every other pack in the corpus (the RETUNE lineage, RAO, the S2 packs) is a bench. A family enters only by clearly beating the current holder of its slot, by measurement and by ear.
 
-Sources are the registry in `tools/sources.yaml`, one entry per pack (name, path, url, licence, role). Entries are never deleted after intake.
+Sources are the registry in the recipe, one entry per pack (name, path, url, licence, role). Entries are never deleted after intake.
 The licence field is a credit record, and `doc/licensing.md` holds the basis per source. Sources are pulled locally by hand, and the pipeline never downloads.
 
 ## The channel model
@@ -77,7 +77,7 @@ Division of labor:
 - The ear (the user) closes every contested call through the player (`ui_da_player.script`): family vs family for a slot, the contested middle of a ranking, the density budgets per state class.
 - The pipeline masters and proves. It never chooses.
 
-Every excluded file or folder carries a written reason in the dispositions register (`tools/sources.yaml`). Nothing is deleted by inference.
+Every excluded file or folder carries a written reason in the dispositions register (the recipe). Nothing is deleted by inference.
 
 ## Audibility method
 
@@ -122,7 +122,7 @@ Thunder has two homes, matching the engine's two systems:
 2. Strike claps: the engine thunderbolt system.
    The weather mod (Atmospherics) drives timing per weather cycle (`thunderbolt_collection`, `thunderbolt_period`, `thunderbolt_duration` in `weathers/w_*.ltx`).
    The collections resolve to sections in `thunderbolts.ltx`, and each section's `sound =` names a path under `sounds\nature\`.
-   DiegeticAmbience deploys its curated strike recordings AT those vanilla paths (`deploy_extra` in `tools/sources.yaml`).
+   DiegeticAmbience deploys its curated strike recordings AT those vanilla paths (`deploy_extra` in the recipe).
    The best claps play with no config, and the weather mod's tuning stays intact.
    The engine plays each strike positioned at the bolt with a speed-of-sound delay and a per-strike attenuation range
    (`thunderbolt.cpp`: `snd.play_no_feedback(0, 0, dist / 300.f, &pos, 0, 0, &Fvector2().set(dist / 2, dist * 2.f))`).
@@ -143,12 +143,12 @@ Every outdoor state of every preset wires `effect_0..9`.
 The DLTX overlay `mod_effects_diegeticambience.ltx` points the ten `sound =` keys at vanilla's proven trx recordings, winning over whichever `effects.ltx` is active.
 Those recordings are the same class of repair as the surge beds.
 Their only source is vanilla, which the channel resolver skips, and no channel reads the override.
-So `deploy_extra` rows (`tools/sources.yaml`) carry the nine `ambient\trx\nature\wind_gust` files the override names.
+So `deploy_extra` rows (the recipe) carry the nine `ambient\trx\nature\wind_gust` files the override names.
 Underground presets keep empty `effects` (the play block never fires indoors, vanilla parity).
 
 The surge beds are the same class of repair.
 `blowout_channels.ltx` inherited `blowout_impacts`, `blowout_rumble`, `blowout_ambient` and `blowout_flare` muted, because their only source is vanilla itself, which the resolver skips.
-Explicit `deploy_extra` rows (`tools/sources.yaml`) now pull the 21 vanilla `ambient\trx\blowout` recordings and the four pools play again during emissions.
+Explicit `deploy_extra` rows (the recipe) now pull the 21 vanilla `ambient\trx\blowout` recordings and the four pools play again during emissions.
 
 ## Deduplication
 
@@ -235,7 +235,7 @@ Standalone, nothing is excluded and the full dread layer plays. With the horror 
 
 - `intake DiegeticAmbience [<Source>]` - the only source-bound step. It pulls config-referenced files missing from the tree (registry order, pick_skip honored, licence-gated per
   source, rejected tombstones skipped). On the way in it folds stereo to mono and resamples off-rate. It captures the AUTHOR blob and the measured facts onto the record row before
-  anything strips them. It then proves retention. Each present source's ambience-scope files are all referenced or covered by a `sources.yaml` disposition row. A gap fails the intake.
+  anything strips them. It then proves retention. Each present source's ambience-scope files are all referenced or covered by a recipe disposition row. A gap fails the intake.
   After the gate, the pack is deletable, and the record holds the author values forever.
 - `refresh DiegeticAmbience` - the forever step, no packs. fmt is the mechanical config-string guard.
   It normalizes the config (dedup pool tokens, strip dead-channel refs, cap spawn distances) and fails any pool line over the ini buffer cap.
