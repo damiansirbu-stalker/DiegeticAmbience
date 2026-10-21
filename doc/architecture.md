@@ -3,7 +3,7 @@
 DiegeticAmbience is the atmosphere soundscape for S.T.A.L.K.E.R. Anomaly. Every map, every weather state, and every hour plays a living, audible ambience.
 It is a curated work. The config is the source of truth, authored by hand: the channels, their pools, the presets, the level bindings.
 The pipeline is `sound-manager` in stalker-dev, and this repo holds only the record and the ogg tree. The authored intake recipe (registry + accounting registers) is PRIVATE in the tool (`sound-manager/private/ambience/recipe.yaml`), never in this public repo, so no source build is named here; `da_sound_metadata.script` is the
-corpus record AND the runtime trace table, one file (each sound's FULL-PRECISION author blob and measured facts on the row, rejected tombstones in a separate table; resources-alone,
+corpus record AND the runtime trace table, one file (each sound's FULL-PRECISION author blob and measured facts on the row; resources-alone,
 no source pack or path; no manifest, no measurement cache). intake pulls what the config references and proves retention. refresh levels from the author baselines and regenerates
 the record. The machine never chooses content.
 
@@ -231,12 +231,12 @@ Standalone, nothing is excluded and the full dread layer plays. With the horror 
 
 ## The mastering mill
 
-`sound-manager` (stalker-dev) reads the hand-written config as its input and does only what needs a machine, in two automatic commands:
+`sound-manager` (stalker-dev) reads the hand-written config as its input and does only what needs a machine, as a pure transform SRC + BASE -> TARGET. SRC is a source pack, read at intake only. BASE is this mod's current tree + record, read only. TARGET is `sound-manager/target/DiegeticAmbience`: every write lands there, the tool NEVER writes this repo, and you copy TARGET's `gamedata` into the mod by hand once it is right. Two commands are AUTOMATIC, both writing only TARGET:
 
 - `intake DiegeticAmbience [<Source>]` - the only source-bound step. It pulls config-referenced files missing from the tree (registry order, pick_skip honored, licence-gated per
-  source, rejected tombstones skipped). On the way in it folds stereo to mono and resamples off-rate. It captures the AUTHOR blob and the measured facts onto the record row before
+  source). On the way in it folds stereo to mono and resamples off-rate. It captures the AUTHOR blob and the measured facts onto the record row before
   anything strips them. It then proves retention. Each present source's ambience-scope files are all referenced or covered by a recipe disposition row. A gap fails the intake.
-  After the gate, the pack is deletable, and the record holds the author values forever.
+  After the gate the pack is deletable, TARGET holds the author values, and you promote it into the mod by hand.
 - `refresh DiegeticAmbience` - the forever step, no packs. fmt is the mechanical config-string guard.
   It normalizes the config (dedup pool tokens, strip dead-channel refs, cap spawn distances) and fails any pool line over the ini buffer cap.
   Then it recomputes from the record's author values, the floors and ceiling from the author baseline every run, so a constant tunes in both directions and nothing ratchets;
@@ -249,6 +249,8 @@ Standalone, nothing is excluded and the full dread layer plays. With the horror 
   A double refresh writes nothing.
 - `stage <Source>:<folder>` / `unstage` - a candidate family under `sounds/stage/` for in-game audition before it is picked.
 - `import <Source>` - the one-time config baseline from a source pack's own sound-routing config, the bootstrap for a fresh variant. It refuses over an existing config.
+
+The rest is MANUAL, by hand: promote (copy `target/DiegeticAmbience/gamedata` into this repo when satisfied), and `reject <id>` (delete one sound you flagged by ear, its ogg and row). No reject memory is kept, so a later intake can re-add that audio - re-judge by ear, and record a deliberate rejection in the private history if it matters. `stage`/`unstage`/`import` above are manual curation too; only `intake` and `refresh` are automatic.
 
 The measured surface. One `ffmpeg` `astats`+`ebur128` pass reads `lufs` (integrated), `crest` (peak minus RMS), and `peak` (true peak). `ffprobe` reads `dur`, `sample_rate`, and `channels`.
 Chromaprint reads the fingerprint `fp`, and the fold reads mid/side RMS. Each drives one build step: `lufs`/`crest` the loudness band and the crest-keyed min floor, `sample_rate` the 44100 resample,
