@@ -38,9 +38,9 @@ Collaborations:
 
 [ Hero image: diegeticambience-hero.gif - a living ambience for every map, weather, and hour ]
 
-Thanks for the support, but I don't need donations. Reviews, ratings, and proper reports help more.
-An organized group copies my work, spreads daily lies, and mass-downvotes my mods across platforms.
-My work is open source, present in most modpacks, and integrates with established projects.
+My work is free and open source, ships in most modpacks, and integrates with established projects.
+An organized group copies my work, defames, impersonates and review-bombs me across platforms.
+You can help with a review, a rating, a proper bug report, or a coffee on Ko-fi: https://ko-fi.com/damiansirbu
 
 Most of the ambient audio installed in Anomaly is never heard, and fixing that takes every step of the chain:
 which packs to draw from, which sounds inside them to keep, listening to each one, the parameters written into every ogg, the calculation behind those parameters, and the removal of duplicates.
