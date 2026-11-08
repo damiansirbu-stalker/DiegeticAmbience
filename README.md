@@ -3,7 +3,7 @@
 An ambient soundscape built from the original GSC games, the old era builds that reworked them, and the major soundscape packs, with every file corrected to be audible at the distance the engine places it.
 The channels and their pools are curated by hand, one recording family per voice, and a mastering pipeline folds every file to mono, sets its distance and loudness from ffmpeg measurements, and proves every map plays in every weather state.
 
-[Releases](https://github.com/damiansirbu-stalker/DiegeticAmbience/releases) | [Bugs, suggestions](https://github.com/damiansirbu-stalker/DiegeticAmbience/issues)
+[![Releases](https://img.shields.io/badge/Releases-24292f?logo=github&logoColor=white)](https://github.com/damiansirbu-stalker/DiegeticAmbience/releases) [![Bugs, suggestions](https://img.shields.io/badge/Bugs%2C_suggestions-24292f?logo=github&logoColor=white)](https://github.com/damiansirbu-stalker/DiegeticAmbience/issues) [![Ko-fi](https://img.shields.io/badge/Ko--fi-ff5e5b?logo=kofi&logoColor=white)](https://ko-fi.com/damiansirbu)
 
 [![ci](https://github.com/damiansirbu-stalker/DiegeticAmbience/actions/workflows/ci.yml/badge.svg)](https://github.com/damiansirbu-stalker/DiegeticAmbience/actions/workflows/ci.yml) [![Project Health](https://img.shields.io/badge/project_health-dashboard-00ced1)](https://damiansirbu-stalker.github.io/DiegeticAmbience/)
 
