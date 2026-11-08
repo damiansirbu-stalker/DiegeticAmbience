@@ -393,12 +393,12 @@ function da_player_wnd:start_current()
     if not (_cur and xsound) then return end
     local mode = MODES[_mode_i]
     if mode.kind == KIND_ATEAR then
-        xsound.play_at(_cur.path, { s2d = true, volume = 1.0 })
+        da_dedup.play_unfiltered(_cur.path, { s2d = true, volume = 1.0 })
         return
     end
     local dist = (mode.kind == KIND_DIST) and mode.dist or self:compute_wired_distance(mode)
     local pos = _compute_position(dist, mode.kind == KIND_WIRED and _cur.height or 0)
-    if pos then xsound.play_at(_cur.path, { position = pos }) end
+    if pos then da_dedup.play_unfiltered(_cur.path, { position = pos }) end
 end
 
 function da_player_wnd:select_row()

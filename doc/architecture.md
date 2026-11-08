@@ -51,7 +51,7 @@ One channel is one voice: one coherent recording family with its own placement (
   A new channel exists only by taking an empty role in some state or by beating the role's current holder.
   The scale lands in the spine's own neighbourhood (its 94 channels rationalized plus the gap additions), not in the hundreds.
 - When one voice needs different cadence per state (common in storms, rare in clear weather), a twin definition carries the same pool with different periods.
-  Twins are used sparingly, and the `fmt` guard keeps the twin lines identical.
+  Twins are used sparingly, and their pool lines are kept identical by hand.
 
 ## Density
 
@@ -159,7 +159,10 @@ In the authored-config model both run as warners. A duplicate pick is reported f
 Those two are build-time.
 Runtime deduplication is separate and lives in `da_dedup.script`, a listener on the xlibs script-sound seam.
 System B picks a channel's sound uniform-random with replacement, so it can replay the same file back to back.
-On a repeat within 20s the listener vetoes that play and reissues a fresh sibling from the same channel at the same position, staying silent only when the channel has no unplayed sibling.
+On a repeat within 20s the listener vetoes that play and reissues a fresh sibling from the same channel at the same position.
+The seam fires before the caller sets its volume.
+The sibling carries the volume the base layer would have given it: the channel's indoor table times the ambient slider, as `sound_ambient.script` computes it.
+It stays silent when the channel has no unplayed sibling or that volume is 0 (an indoor channel heard outdoors).
 It filters to our ambient files through the channel index (non-ambient script sounds pass untouched) and is inert on an exe without the seam.
 Unlike `da_diag`, which observes and returns nil, this consumer returns a veto.
 
@@ -237,8 +240,9 @@ Standalone, nothing is excluded and the full dread layer plays. With the horror 
   source). On the way in it folds stereo to mono and resamples off-rate. It captures the AUTHOR blob and the measured facts onto the record row before
   anything strips them. It then proves retention. Each present source's ambience-scope files are all referenced or covered by a recipe disposition row. A gap fails the intake.
   After the gate the pack is deletable, TARGET holds the author values, and you promote it into the mod by hand.
-- `refresh DiegeticAmbience` - the forever step, no packs. fmt is the mechanical config-string guard.
-  It normalizes the config (dedup pool tokens, strip dead-channel refs, cap spawn distances) and fails any pool line over the ini buffer cap.
+- `refresh DiegeticAmbience` - the forever step, no packs. It never rewrites the authored config.
+  It reports a channel that lists one sound twice (that doubles the sound's odds, a curation call) and fails any pool line over the ini buffer cap.
+  A reference to an undefined channel fails verify.
   Then it recomputes from the record's author values, the floors and ceiling from the author baseline every run, so a constant tunes in both directions and nothing ratchets;
   measured values are computed once per audio identity and re-measured only on `--remeasure`. Four per-row dispositions hold: strike/emission/staged files and no-author rows keep
   their bytes unchanged, channel-unwired rows keep the author blob verbatim, and only wired rows with a verified author blob are re-leveled.
@@ -295,6 +299,7 @@ The old tool read its own last output as the author base, so floors could only r
 - `ui_da_player.script` is the curation instrument, mirroring the horror layer's player shape.
   It is a keyboard-owning modal on PageUp (the horror layer keeps PageDown), gated by the MCM sound_player toggle.
   It browses BY CHANNEL from the resolved `sound_channels.ltx` and auditions as-wired at the channel's real placement, at-ear, and at fixed distances.
+  Auditions play through `da_dedup.play_unfiltered`, past the repeat veto, and each plays exactly the sound picked.
   It steps within pools and staged candidate families for A/B rulings.
   Each audition shows a delivered-loudness readout (measured LUFS, base_volume, est. dB at the audition distance) from `xsound.get_meta` / `compute_delivered_loudness`, fed by `da_sound_metadata`.
   Ear verdicts go to `diegeticambience_notes.txt`, an investigation log that nothing parses.

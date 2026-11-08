@@ -1,7 +1,7 @@
 --- da_dedup: veto a too-soon repeat of an ambient one-shot, replacing it with a fresh channel sibling.
 
-local time_global, math_random, ini_file, RegisterScriptCallback =
-    time_global, math.random, ini_file, RegisterScriptCallback
+local time_global, math_random, ini_file, RegisterScriptCallback, GetEvent =
+    time_global, math.random, ini_file, RegisterScriptCallback, GetEvent
 
 local SEAM = "on_before_play_script_sound"
 local CHANNELS_FILE = "environment\\sound_channels.ltx"
@@ -12,6 +12,7 @@ local NO_SOUND = "ambient\\no_sound"
 
 local _chan_of = nil
 local _files_of = nil
+local _indoor_of = nil
 local _last = {}
 local _injecting = false
 local _walk_ini
@@ -25,6 +26,7 @@ end
 --- Map each of a channel's pool files to the channel and back, on the section walk.
 local function _collect(section)
     if not _walk_ini:line_exist(section, "sounds") then return end
+    _indoor_of[section] = _walk_ini:r_bool_ex(section, "indoor", false)
     for token in (_walk_ini:r_string_ex(section, "sounds") or ""):gmatch("[^,]+") do
         local key = _get_key(token:match("^%s*(.-)%s*$"))
         if not (key and key ~= "") then goto continue end
@@ -38,7 +40,7 @@ end
 
 --- Build the file-to-channel and channel-to-files maps once from the channel configs.
 local function _build_index()
-    _chan_of, _files_of = {}, {}
+    _chan_of, _files_of, _indoor_of = {}, {}, {}
     for i = 1, #INDEX_FILES do
         local ini = ini_file(INDEX_FILES[i])
         if not (ini and ini.section_for_each) then goto continue end
@@ -64,7 +66,18 @@ local function _select_sibling(channel, exclude_key, now)
     return fresh
 end
 
---- Seam handler: allow the play, or veto a within-window repeat and replace it with a fresh sibling.
+--- The volume the base ambient layer gives a channel's sound right now (sound_ambient.script:149-165): the indoor table times the ambient slider.
+--- The seam fires before the caller sets its volume, so the sibling must carry this itself.
+local function _get_channel_volume(channel)
+    local inside = GetEvent("underground") or GetEvent("current_safe_cover")
+    local indoor = _indoor_of[channel]
+    local vol
+    if inside then vol = indoor and 1 or 0.3
+    else vol = indoor and 0 or 1 end
+    return vol * ((ui_options and ui_options.get("sound/environment/ambient_volume")) or 1)
+end
+
+--- Seam handler: allow the play, or veto a within-window repeat and replace it with a fresh sibling at the base layer's volume.
 local function _on_play(file, pos)
     if _injecting then return end
     if not _chan_of then _build_index() end
@@ -79,14 +92,15 @@ local function _on_play(file, pos)
         return
     end
     local sibling = pos and _select_sibling(channel, key, now)
-    if sibling then
+    local volume = sibling and _get_channel_volume(channel) or 0
+    if volume > 0 then
         _last[sibling] = now
         _injecting = true
-        xsound.play_at(sibling, { position = pos })
+        xsound.play_at(sibling, { position = pos, volume = volume })
         _injecting = false
-        if da_debug.is_on() then da_debug.debug("[DEDUP] %s -> %s (repeat)", key, sibling) end
+        if da_debug.is_on() then da_debug.debug("[DEDUP] %s -> %s (repeat, vol=%.2f)", key, sibling, volume) end
     elseif da_debug.is_on() then
-        da_debug.debug("[DEDUP] %s silenced (no fresh sibling)", key)
+        da_debug.debug("[DEDUP] %s silenced (no fresh sibling, or the base layer plays it at 0)", key)
     end
     return { volume_mult = 0 }
 end
@@ -94,6 +108,17 @@ end
 --- Clear the per-file play clock (each load; time_global restarts, so stale stamps must go).
 local function _reset()
     _last = {}
+end
+
+--- Play a sound past the repeat veto, for the review player: an audition plays exactly the sound picked.
+--- @param path string Sound path
+--- @param opts table|nil xsound.play_at options
+--- @return number|nil The xsound handle
+function play_unfiltered(path, opts)
+    _injecting = true
+    local handle = xsound.play_at(path, opts)
+    _injecting = false
+    return handle
 end
 
 --- Subscribe the dedup to the script-sound seam once, and reset state each load. Inert without the hook.
