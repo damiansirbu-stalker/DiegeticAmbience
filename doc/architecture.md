@@ -42,7 +42,7 @@ One channel is one voice: one coherent recording family with its own placement (
 - Pool size: target 15-25 files (the ecosystem's own median-to-average band, measured across 7 packs), hard cap 40.
   A channel earns 26-40 only for a genuinely deep, uniform family.
   Past 40, overflow that forms a distinct character cluster becomes its own channel, and more-of-the-same is cut.
-- The mechanical ceiling: one `sounds =` value is a single line read into a fixed 4096-byte buffer (`SoundRender_Core.cpp`).
+- The mechanical ceiling: one `sounds =` value is a single line read into a fixed 4096-byte buffer (`Xr_ini.cpp`).
   At the corpus average of 43 chars per token that is about 95 files. The `LINE_CAP = 3900` guard fails the build before the buffer can.
   A pool that outgrows the line continues in a sibling channel, `<name>__2`, with the same placement and cadence.
   Every preset state that lists the base also lists its sibling (`birds__2`, `crows__2`, `insects__2`, `bugs_day__2`, `bugs_night__2`, `bugs_swamp__2`, `frogs__2`, `ugrnd_ambient_new__2`).
@@ -56,7 +56,7 @@ One channel is one voice: one coherent recording family with its own placement (
 ## Density
 
 Each state class has an ear-calibrated events-per-minute budget, and the budget is the conserved quantity.
-The state's total emission rate (the sum of `1/mean(period2..3)` across its wired channels, weighted by sound length) never exceeds it.
+The state's total emission rate (the sum of `1/mean(period2..3)` across its wired channels) never exceeds it.
 A channel wired into a state is paid for in periods, its own or its neighbours'. A split channel repays in cadence, so a split can never raise the rate.
 
 Three further rules keep many channels from becoming a wall:
@@ -105,11 +105,12 @@ The mastering rules, scoped by playback path:
   Strike files are excluded. The engine overrides their range per strike (see Thunder below), and blob distances do nothing there.
 - Every bed-played file is typed `WORLD_AMBIENT` in its blob, like vanilla's own beds. Beds take the type from the blob (`Environment_misc.cpp`).
   Only that type skips the occlusion ray (`SoundRender_Emitter_FSM.cpp`), and a wall then never muffles the weather.
-- The loudness band is per class, both arms lossless and partial. A bed sits between -30 and -24 dB delivered, a single cue between -36 and -28.
+- The loudness band is per class, both arms lossless and partial. A bed is levelled toward -30 to -24 dB delivered, a single cue toward -36 to -28.
+  The class comes from the file's path. Wind, storm, rain, thunder, fog, background, drone and rumble names count as beds.
   A floor lifts a file whose delivered loudness at its placement sits below the band, and a ceiling lowers a file above it. A file is only ever in one arm.
 - Dead audio is reported, never auto-deleted. A file at or under -60 LUFS leaves only by a hand reject.
 
-All blob edits are lossless (audio pages byte-identical). The fold is the only re-encode, and it exists because the engine only positions mono.
+All blob edits are lossless (audio pages byte-identical). The fold and the off-rate resample are the only re-encodes. They exist because the engine positions mono only and loads 44100 only.
 
 Blob contract (the engine-read fields).
 The comment is a `0x0003` X-Ray struct of five fields: `min`, `max`, `base_volume`, `game_type`, `max_ai_dist` (`SoundRender_Source_loader.cpp`, the `0x0003` branch).
@@ -199,10 +200,10 @@ The links below those three are weather-mod-independent. Variants for other weat
 5. Level routing closed: every map binds a preset, underground maps to underground presets.
 6. Weather matrix full: every preset defines a section for every state the active weather mod emits.
 7. Record closure: every row has its ogg, every ogg has its row, and every ogg's audio hash matches its row. A hand-edited file fails.
-8. Density: per state, the events-per-minute budget holds and the entry-burst stagger holds.
+8. Density: per state, the events-per-minute budget holds. The entry-burst stagger is a curation rule and has no gate.
    Armed 2026-09-09 with per-state-class density budgets (the tool's ambience gate pack) as loud regression ceilings that guard against a future blowout.
    They sit looser than the ear-calibrated budget.
-   The epm sum uses the round-robin cap (60000/mean(period0..3), one channel per round) but still counts no_sound channels, a known over-count the loose ceilings tolerate.
+   The epm sum uses the round-robin cap (60000/mean(period2..3), one channel per round) but still counts no_sound channels, a known over-count the loose ceilings tolerate.
    Tighten only after the sum excludes silent channels and the ear calibrates real values.
 9. Line cap: no `sounds =` line approaches the 4096-byte ini buffer (`LINE_CAP = 3900`).
 10. Collection coverage: every thunderbolt collection name the active weather mod references resolves in the base game's collection set.
@@ -214,13 +215,13 @@ The links below those three are weather-mod-independent. Variants for other weat
     The gate FAILs only if a touched channel lacks the guard. It runs when verify is given the horror layer's overlay file.
 12. Level coverage: every playable base-game level (`LEVELS_BASE`, the `game_maps_single.ltx` set minus `fake_start`) binds an `ambients/<level>.ltx`.
     An unbound level plays vanilla wiring through the MO2 VFS (the 9 labs, found 2026-09-03) or a bare `ambients.ltx` fallback with no dynamic layers (`y04_pole`).
-    Bindings outside the base set (extended maps) are reported, not failed.
+    Bindings outside the base set (extended maps) are not checked.
 13. Bed load asserts: every channel any preset or `ambients.ltx` names as a bed satisfies `SSndChannel::load` (`Environment_misc.cpp`):
     `max_distance > min_distance` strict, `period0 <= period1`, `period2 <= period3`, non-empty `sounds`. A violation is a CTD on level load.
 14. Dynamic completeness: every channel named in any `sound_channels_dynamic` defines all 4 periods and both distances, or `sound_ambient.script` nil-errors and breaks that hour's rotation.
 15. Indoor routing: no `indoor = true` channel is wired into an outdoor state, where the System B volume table (`sound_ambient.script`) plays it at 0.0.
     Outdoor channels inside underground states (played at 0.3) are reported, not failed.
-16. Strike palette (informational): of the bolt sounds reachable through the collections the weathers reference, how many carry our deploy vs vanilla audio.
+16. Strike palette: retired with the earlier build. The current tool has no gate 16.
 17. Effect vocabulary: every effect id any preset or `ambients.ltx` wires exists in the base effect set (`effect_0..9` + `blowout_effect_01..48`).
     An unknown id is a CTD. `create_effect` reads `life_time` with a throwing `r_float` (`Environment_misc.cpp`).
 18. Effect sound paths: every `sound =` in the effect override resolves to a file on disk.
@@ -256,10 +257,12 @@ Every command takes a source tree and a target tree and names no mod. Copying a 
 - stage and unstage put a candidate family under `sounds/stage/` for an in-game audition. Verify fails while a stage tree is present.
 - import is the one-time config baseline from a pack's own sound-routing config, the bootstrap for a fresh variant. It refuses over an existing config.
 
-The measured surface. One `ffmpeg` `astats`+`ebur128` pass reads `lufs` (integrated), `crest` (peak minus RMS), and `peak` (true peak). `ffprobe` reads `dur`, `sample_rate`, and `channels`.
+One `ffmpeg` `astats`+`ebur128` pass reads `lufs` (integrated), `crest` (peak minus RMS), and `peak` (sample peak).
+`ffprobe` reads `dur`, `sample_rate`, and `channels`.
 Chromaprint reads the fingerprint `fp`, and the fold reads mid/side RMS. Each drives one build step: `lufs`/`crest` the loudness band and the crest-keyed min floor, `sample_rate` the 44100 resample,
-`channels` the fold, mid/side RMS the sum-vs-drop split, `fp` the acoustic-duplicate report, and `peak` the dead report, while `dur` is recorded per row. The six the runtime keeps,
-`lufs`/`crest`/`peak`/`bv`/`mn`/`mx`, are the `da_sound_metadata` set above, read by the wiring inspector and the sound player through `xsound.compute_delivered_loudness`.
+`channels` the fold, mid/side RMS the sum-vs-drop split, `fp` the acoustic-duplicate report, and `lufs` also the dead report, while `peak` and `dur` are recorded per row.
+Part of that set stays in the record for the game.
+At runtime `lufs`/`crest`/`peak`/`bv`/`mn`/`mx` are the `da_sound_metadata` set above, read by the wiring inspector and the sound player through `xsound.compute_delivered_loudness`.
 
 The generator stages of the earlier build (config synthesis, folder-dump grafts, spine path priority, prune-by-inference) are deleted, and the in-place level ratchet with them.
 The old tool read its own last output as the author base, so floors could only rise.
@@ -270,9 +273,9 @@ The old tool read its own last output as the author base, so floors could only r
 - I2 The config is authored. Machines level, report, and prove. They never choose content.
 - I3 Spine completeness. Every ambience-scope file of the spine, across all its sound systems, was kept, re-homed or rejected with a reason in the private history. Nothing dies silently.
 - I4 One channel, one voice. Single-source pools by default, coherence verified, 15-25 target, 40 cap, roles-menu admission.
-- I5 Density is conserved. The per-state budget and the entry-burst stagger are gates, not advice.
+- I5 Density is conserved. The per-state budget is a gate, not advice. The entry-burst stagger is held by hand.
 - I6 Audible by measurement. Mono fold, crest-inverted min floor, per-category loudness band, placement caps, scoped by playback path.
-- I7 Preserve the source except where the engine forbids it. Blob-only edits, audio pages byte-identical, the fold as the one re-encode.
+- I7 Preserve the source except where the engine forbids it. Blob-only edits, audio pages byte-identical, the fold and the resample as the only re-encodes.
 - I8 Deduplicate twice, warn, let the curator resolve.
 - I9 Config closed. The full gate set passes or the build fails.
 - I10 Weather-mod-bound at three vocabularies (ambient states, collection names, effect ids). Stock Anomaly and Atmospherics share all three. Other weather mods need a sweep of all three first.
@@ -297,7 +300,7 @@ The old tool read its own last output as the author base, so floors could only r
   This is the runtime counterpart to the static wiring dump, and the ground truth for the density and repetition rulings.
 - `ui_da_player.script` is the curation instrument, mirroring the horror layer's player shape.
   It is a keyboard-owning modal on PageUp (the horror layer keeps PageDown), gated by the MCM sound_player toggle.
-  It browses BY CHANNEL from the resolved `sound_channels.ltx` and auditions as-wired at the channel's real placement, at-ear, and at fixed distances.
+  It browses BY CHANNEL from the resolved `sound_channels.ltx` and auditions inside the channel's band (at its min, half its max, and 0.9 of its max), at-ear, and at fixed distances.
   Auditions play through `da_dedup.play_unfiltered`, past the repeat veto, and each plays exactly the sound picked.
   It steps within pools and staged candidate families for A/B rulings.
   Each audition shows a delivered-loudness readout (measured LUFS, base_volume, est. dB at the audition distance) from `xsound.get_meta` / `compute_delivered_loudness`, fed by `da_sound_metadata`.

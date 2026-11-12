@@ -64,7 +64,7 @@ When both run, DiegeticDread takes its captured sounds out of the base channels 
 
 Every ambient pack in this space was checked for channel count and sample rate.
 Across them, 5 to 49 percent of files are stereo, which the engine plays flat at the ear with no distance falloff, and some sit at the wrong sample rate and play as silence.
-Every file here is mono at 44100, and the release does not build unless both counts stay at 0.
+Every file here is mono at 44100. No other form enters, because the build folds and resamples each pack as it comes in.
 
 The packs each cover part of the problem.
 The biggest has the most sounds and the widest level coverage. Its beds play too quiet, and about half its files are stereo.
@@ -104,9 +104,10 @@ The build
 
 Ear - the per-category targets come from an in-ear calibration ladder, and the packs were compared by listening before selection.
 
-The struct - five fields, of which the build writes two. min_distance and base_volume are set from measurement.
-max_distance, the game type and the AI hearing distance stay exactly as the author left them.
-A file arriving with no struct at all is given one, with max taken at 100 metres, the median of the corpus (the engine default is 300).
+The struct - five fields, and the build writes all five. No value a pack author set is kept.
+min_distance and base_volume come from measurement, and max_distance from the channel that places the sound.
+A sound the engine plays as a bed gets a 300 metre max and the world-ambient type, like the base game's own beds. A wall then never muffles the weather.
+The AI hearing distance follows max_distance and reaches no NPC, because these sounds play without a type or an owner.
 
 Mono - the fold produces a genuine single-channel file, because the engine spatialises on channel count.
 Left and right are summed, unless the pair is anti-phase (side RMS more than 3 dB above mid, where summing would cancel it) and the left channel is kept on its own instead.
@@ -114,21 +115,21 @@ It is a libvorbis re-encode at quality 6, resampled to 44100. The re-encode stri
 
 Distance - min_distance is floored against where the channel actually places the sound, and the crest factor picks the ratio.
 A hard attack takes 0.40, a sustained tone takes 0.60.
-The floor is held under 80 percent of max_distance so that a real fade band always survives between the two, and it never lowers a value an author set deliberately.
+The floor is held under 80 percent of max_distance so that a real fade band always survives between the two.
 
 Loudness - base_volume is levelled into a band with a floor and a ceiling. Continuous beds aim at -30 LUFS effective and single sounds at -36, with ceilings at -24 and -28 to bring down anything hot.
 The figure is computed from content loudness plus both rolloff terms, so it refers to what arrives at the placement.
 It closes 70 percent of a file's gap, so quiet recordings stay quieter than loud ones.
 
 Lossless - both corrections are written into the comment struct and nowhere else, so the audio pages come out identical to what the author encoded.
-The mono fold is the only exception, because the engine positions mono only.
+The mono fold and the resample of an off-rate file are the only exceptions, because the engine positions mono only and loads 44100 only.
 
 Spawn radius - the min and max in sound_channels.ltx are a different pair from the ones inside the file, and the two are easy to confuse.
 They decide where around you the scheduler drops a sound, not how loud it is once it is there.
 A sound spawned near its own max_distance is placed where the curve falls to silence. Wind was spawning to 200 and inaudible at that range, so it is capped at 130.
 
 Duplicates - an md5 catches the files that are byte for byte the same. Chromaprint catches the ones a hash cannot see, the same recording renamed or run through another encoder.
-Every duplicate pair is reported, and the configuration keeps one copy per recording, so a channel never draws the same sound twice under two names.
+Every duplicate pair is reported, and the curator resolves each one by hand.
 
 Channels - a channel is a pool the engine draws from at its own rate, so the number of channels in a preset is the number of things arriving at you per minute.
 One channel holds one voice: one coherent recording family with its own placement and its own cadence, capped at 40 sounds.
@@ -137,22 +138,22 @@ New content arrives as new channels paying for themselves in cadence. The variet
 Terrain - which presets count as wetland, forest, field or urban comes from joining the level configuration against the terrain of each map.
 The names do not match the terrain. environment_forest is used by a field map and environment_darkscape by Red Forest.
 
-Culling - anything measuring at or below -60 LUFS leaves through the exclusions register. No channel is left empty.
+Culling - anything measuring at or below -60 LUFS is reported, and it leaves only by a hand reject. No channel is left empty.
 
 Repairs - the stock configuration ships four channel references that resolve to nothing, wind_trong for wind_strong among them.
 
 Coverage - 33 levels, 31 presets, 12 ambient states, the same set under stock Anomaly weather and under Atmospherics.
 Every cell of that matrix has to resolve to a real channel with real audio behind it, and the build will not produce a release until it does.
 
-Measurement - ffmpeg does the reading, ebur128 for integrated loudness in broadcast LUFS and astats for crest factor and true peak.
+Measurement - ffmpeg does the reading, ebur128 for integrated loudness in broadcast LUFS and astats for crest factor and peak.
 ffprobe reads duration, sample rate, and channel count, and Chromaprint handles identity.
 All of it feeds a reconstruction of the two rolloffs and the effects master, so every number in the build refers to what arrives at the player.
 Six values are frozen into each sound and stay readable in game - its loudness, crest, peak, volume, and the near and far distance in its struct.
 The wiring inspector and the sound player read them back to show how loud a sound arrives at a given distance.
 
 Reproducible - I choose the channels and the files by hand, and the config records those choices.
-The build pulls those files from the packs and masters them, so the audio comes out the same every time.
-Every file in the release traces back to its source pack and the measurement that shaped it.
+The build masters each file from its own measurement, and the audio comes out the same every time.
+A sound's identity is its audio, and licensing.md records the basis for every source.
 
 Offline - none of this runs against your install, and the build downloads nothing.
 I pull the packs by hand, and licensing.md records the basis for every source.
@@ -161,13 +162,13 @@ I pull the packs by hand, and licensing.md records the basis for every source.
 
 Engine work
 
-Most of this mod is audio. The rest is engine and script work, planned, for the parts a file cannot carry.
-All of it waits on one engine change, a hook at the point where X-Ray decides to play an ambient sound, so a script can inspect the pick before it plays.
-xlibs carries the API, and the trace consumer is built, both inert until a public engine ships the hook.
+Most of this mod is audio. The rest is engine and script work, for the parts a file cannot carry.
+All of it needs one engine change, a hook at the point where X-Ray decides to play an ambient sound. A script can then inspect the pick before it plays.
+xlibs carries the API. The trace and the repeat filter are built, and both stay inert on an exe without the hook.
 
 Beds on first load - the engine does not render the ambient beds on a fresh run until you have saved and reloaded.
 Tracing - report what the ambient system does while a build plays.
-Throttling - the ambient system fires the same sound twice in a row, or three at once. A minimum gap at the emitter and a short history of recent plays prevent both.
+Throttling - the ambient system fires the same sound twice in a row. A repeat inside 20 seconds is replaced by another sound of the same channel.
 Families - related sounds selected together, so a location keeps a consistent character over several minutes.
 Jitter - a few metres of variation on the emit distance, bounded to stay inside the author's band.
 

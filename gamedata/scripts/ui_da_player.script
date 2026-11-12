@@ -515,7 +515,7 @@ function da_player_wnd:add_note(premade)
         or "note FAILED (no actor?)")
 end
 
---- Re-read the channel config and the stage tree (after a merge.py stage/unstage or a config edit).
+--- Re-read the channel config and the stage tree (after a stage, an unstage, or a config edit).
 function da_player_wnd:reset_index()
     _build_index()
     _view, _row, _from_fs, _fs_dir = VIEW_ROOT, nil, false, ""

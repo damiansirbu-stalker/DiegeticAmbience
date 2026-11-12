@@ -92,7 +92,7 @@ local function _get_channel(file)
     return _file_index[_get_key(file)]
 end
 
--- Predicted-audibility floor for the trace token (delivered-dB), mirroring the pipeline LOUD_FLOOR (merge.py).
+-- Predicted-audibility floor for the trace token (delivered-dB), the one-shot loudness floor the build masters against.
 local AUDIBLE_FLOOR = -36.0
 
 --- Predicted audibility from the delivered loudness: SILENT (no reach), FAINT (below the floor), AUD.
