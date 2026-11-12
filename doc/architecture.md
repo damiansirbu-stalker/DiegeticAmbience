@@ -4,7 +4,7 @@ DiegeticAmbience is the atmosphere soundscape for S.T.A.L.K.E.R. Anomaly. Every 
 It is a curated work. The config is the source of truth, authored by hand: the channels, their pools, the presets, the level bindings.
 The pipeline is `sound-manager` in stalker-dev, and this repo holds only the record and the ogg tree. The authored intake recipe (registry + accounting registers) is PRIVATE in the tool (`sound-manager/private/ambience/recipe.yaml`), never in this public repo, so no source build is named here; `da_sound_metadata.script` is the
 corpus record AND the runtime trace table, one file (each sound's FULL-PRECISION author blob and measured facts on the row; resources-alone,
-no source pack or path; no manifest, no measurement cache). intake pulls what the config references and proves retention. refresh levels from the author baselines and regenerates
+no source pack or path; no manifest, no measurement cache). intake pulls what the config references and proves retention. refresh levels from measurement, reading no author value, and regenerates
 the record. The machine never chooses content.
 
 The soundscape carries its own dread layer. Distant mutant cries, far gunfire, spooks, and dark ambience play standalone.
@@ -88,12 +88,17 @@ Community ambient corpora sound fine at-ear yet die in-game, for engine reasons 
    An unset min of 1-2 costs -26..-31 dB at a 25-50 m placement before the linear fade applies.
 3. Content loudness is a separate floor the distance fixes cannot reach.
 
+The shared mastering model is `doc/standards/stalker-mining.md`, identical for both mods and reading NO
+author value in any blob field: the crest-keyed min-distance floor, base_volume unity into the floor/ceiling
+loudness band off measured LUFS, and the falloff max from a per-content vanilla reach. The only difference is
+the reach SOURCE - DiegeticDread's `DREAD_REACH` table vs DiegeticAmbience's own hand-authored channel LTX
+(blob max = that channel's max_distance), which also places the sound (below).
+
 The mastering rules, scoped by playback path:
 
 - Fold to mono (`fold`) applies to ALL 3D-played audio, ambient channels and strike files alike.
-  The fold is the one lossy step. It captures the author blob first and resamples off-rate files to 44100, because the engine hard-rejects any other rate (`SoundRender_Source_loader.cpp`).
-- The crest-inverted min-distance floor (`level`) applies to ambient channel files only.
-  It floors each file's `min_distance` to a crest-keyed ratio (0.40-0.60) of its channel's felt-far placement, capped below `max_distance`, and never lowers an authored min.
+  The fold is the one lossy step; it resamples off-rate files to 44100, because the engine hard-rejects any other rate (`SoundRender_Source_loader.cpp`). The source blob is kept as an audit column only, never read by the master.
+- The min and max come from the measured model, no author value (`gainmodel.floored_blob`, caller `_refresh_ambience`): the max is the channel's own `max_distance` (its felt-far x 2), the min a crest-keyed ratio (0.40-0.60) of the reach/2 placement, capped below the max.
   Strike files are excluded. The engine overrides their range per strike (see Thunder below), so blob distances do nothing there.
 - The loudness band (`level`) is per-category, both arms lossless and partial.
   A floor lifts a file whose delivered loudness at its placement sits below the audible target, and a ceiling lowers a file above it. A file is only ever in one arm.
@@ -243,9 +248,9 @@ Standalone, nothing is excluded and the full dread layer plays. With the horror 
 - `refresh DiegeticAmbience` - the forever step, no packs. It never rewrites the authored config.
   It reports a channel that lists one sound twice (that doubles the sound's odds, a curation call) and fails any pool line over the ini buffer cap.
   A reference to an undefined channel fails verify.
-  Then it recomputes from the record's author values, the floors and ceiling from the author baseline every run, so a constant tunes in both directions and nothing ratchets;
-  measured values are computed once per audio identity and re-measured only on `--remeasure`. Four per-row dispositions hold: strike/emission/staged files and no-author rows keep
-  their bytes unchanged, channel-unwired rows keep the author blob verbatim, and only wired rows with a verified author blob are re-leveled.
+  Then it recomputes every wired row's blob from measurement, reading no author value: max = the channel reach (felt x 2 = the farthest referencing channel's max_distance), min = the measured crest floor, and base_volume pulled into the per-category floor/ceiling band off the measured LUFS, so a constant tunes in both directions and nothing ratchets;
+  measured values are computed once per audio identity and re-measured only on `--remeasure`. Three row classes: master-skipped (strike/emission/staged) and channel-unwired rows keep
+  their bytes unchanged, and every wired row is mastered the same way, with no author-blob gate.
   It also fills each row's placement - `band` (`ch_min`/`ch_max`), `indoor`, `height` - from the authored channel LTX (ambience's placement authority), so the record carries the identical placement columns DiegeticDread stores; a sound in no channel (a strike/effect/surge deploy) has none.
   Then it regenerates `da_sound_metadata.script` - the record itself, the uniform sound schema (`core/manifest.py`): the trace display (`lufs`/`crest`/`peak`/`bv`/`mn`/`mx` plus `ch_min`/`ch_max`/`h`/`indoor`) beside the persisted tool columns the game never reads.
   The engine never reads the file at all. The mod loads it once into `xsound.load_meta` for the delivered-loudness readout.
