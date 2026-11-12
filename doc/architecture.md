@@ -2,10 +2,9 @@
 
 DiegeticAmbience is the atmosphere soundscape for S.T.A.L.K.E.R. Anomaly. Every map, every weather state, and every hour plays a living, audible ambience.
 It is a curated work. The config is the source of truth, authored by hand: the channels, their pools, the presets, the level bindings.
-The pipeline is `sound-manager` in stalker-dev, and this repo holds only the record and the ogg tree. The authored intake recipe (registry + accounting registers) is PRIVATE in the tool (`sound-manager/private/ambience/recipe.yaml`), never in this public repo, so no source build is named here; `da_sound_metadata.script` is the
-corpus record AND the runtime trace table, one file (each sound's FULL-PRECISION author blob and measured facts on the row; resources-alone,
-no source pack or path; no manifest, no measurement cache). intake pulls what the config references and proves retention. refresh levels from measurement, reading no author value, and regenerates
-the record. The machine never chooses content.
+Every sound here is mastered by a private build tool. This repo holds its output, the record and the ogg tree, beside the authored config. No source build is named here.
+`da_sound_metadata.script` is the corpus record AND the runtime trace table, one file. Each row carries the sound's measured facts and keeps no source pack or path.
+Intake brings net-new sounds in. Refresh levels them from measurement, reads no author value, and regenerates the record. The machine never chooses content.
 
 The soundscape carries its own dread layer. Distant mutant cries, far gunfire, spooks, and dark ambience play standalone.
 A directed horror layer is optional on top. Its director places dynamic horror cues, and its static exclusion takes the captured sounds out of the base channels at load, so the two never double.
@@ -28,8 +27,7 @@ Other packs add what the spine lacks or does weakly, always as channels, never a
 - The old era builds are mined for specific missing voices only. An original-game recording beats a re-edit at equal quality.
 - Every other pack in the corpus (the other packs) is a bench. A family enters only by clearly beating the current holder of its slot, by measurement and by ear.
 
-Sources are the registry in the recipe, one entry per pack (name, path, url, licence, role). Entries are never deleted after intake.
-The licence field is a credit record, and `doc/licensing.md` holds the basis per source. Sources are pulled locally by hand, and the pipeline never downloads.
+`doc/licensing.md` holds the licence basis per source. Sources are pulled locally by hand, and the pipeline never downloads.
 
 ## The channel model
 
@@ -46,6 +44,8 @@ One channel is one voice: one coherent recording family with its own placement (
   Past 40, overflow that forms a distinct character cluster becomes its own channel, and more-of-the-same is cut.
 - The mechanical ceiling: one `sounds =` value is a single line read into a fixed 4096-byte buffer (`SoundRender_Core.cpp`).
   At the corpus average of 43 chars per token that is about 95 files. The `LINE_CAP = 3900` guard fails the build before the buffer can.
+  A pool that outgrows the line continues in a sibling channel, `<name>__2`, with the same placement and cadence.
+  Every preset state that lists the base also lists its sibling (`birds__2`, `crows__2`, `insects__2`, `bugs_day__2`, `bugs_night__2`, `bugs_swamp__2`, `frogs__2`, `ugrnd_ambient_new__2`).
 - Channels fill ROLES, and roles are a fixed menu per state class (clear day, clear night, rain, storm, fog, underground).
   The menu holds a bed, a wind, birds or their night counterpart, insects, foliage, a rare-treasure slot, and weather-specific extras.
   A new channel exists only by taking an empty role in some state or by beating the role's current holder.
@@ -77,46 +77,48 @@ Division of labor:
 - The ear (the user) closes every contested call through the player (`ui_da_player.script`): family vs family for a slot, the contested middle of a ranking, the density budgets per state class.
 - The pipeline masters and proves. It never chooses.
 
-Every excluded file or folder carries a written reason in the dispositions register (the recipe). Nothing is deleted by inference.
+Every rejected sound carries a written reason in the private build history. Nothing is deleted by inference.
 
 ## Audibility method
 
-Community ambient corpora sound fine at-ear yet die in-game, for engine reasons (`doc/library/anomaly/internals/sound-source-and-emitter.md`):
+Community ambient corpora sound fine at-ear yet die in-game, for engine reasons (`SoundRender_Core.cpp`, `SoundRender_Emitter_FSM.cpp`):
 
 1. A STEREO ogg force-plays 2D at-ear, escaping distance rolloff and occlusion. Only MONO spatialises.
 2. Every 3D voice attenuates twice, through X-Ray's linear fade AND OpenAL's inverse model keyed on the ogg blob's `min_distance`.
    An unset min of 1-2 costs -26..-31 dB at a 25-50 m placement before the linear fade applies.
 3. Content loudness is a separate floor the distance fixes cannot reach.
 
-The shared mastering model is `doc/standards/stalker-mining.md`, identical for both mods and reading NO
-author value in any blob field: the crest-keyed min-distance floor, base_volume unity into the floor/ceiling
-loudness band off measured LUFS, and the falloff max from a per-content vanilla reach. The only difference is
-the reach SOURCE - DiegeticDread's `DREAD_REACH` table vs DiegeticAmbience's own hand-authored channel LTX
-(blob max = that channel's max_distance), which also places the sound (below).
+Both Diegetic mods share one mastering model, and it reads NO author value in any blob field.
+The min is a crest-keyed floor. base_volume starts at 1.0 and moves into the floor/ceiling loudness band off the measured LUFS. The max is the content's reach.
+This mod takes the reach from its own hand-authored channel config, which also places the sound (below).
 
 The mastering rules, scoped by playback path:
 
-- Fold to mono (`fold`) applies to ALL 3D-played audio, ambient channels and strike files alike.
-  The fold is the one lossy step; it resamples off-rate files to 44100, because the engine hard-rejects any other rate (`SoundRender_Source_loader.cpp`). The source blob is kept as an audit column only, never read by the master.
-- The min and max come from the measured model, no author value (`gainmodel.floored_blob`, caller `_refresh_ambience`): the max is the channel's own `max_distance` (its felt-far x 2), the min a crest-keyed ratio (0.40-0.60) of the reach/2 placement, capped below the max.
-  Strike files are excluded. The engine overrides their range per strike (see Thunder below), so blob distances do nothing there.
-- The loudness band (`level`) is per-category, both arms lossless and partial.
-  A floor lifts a file whose delivered loudness at its placement sits below the audible target, and a ceiling lowers a file above it. A file is only ever in one arm.
-  Ambient targets come from the in-ear calibration ladder through the two-rolloff gain model. Strike files get their own target, calibrated to a nominal mid-distance strike.
-- Placement: per-category spawn-distance caps in config hold each category's felt-far band.
-- Dead audio (`dead`) is reported, not auto-deleted. A measured-dead file (content below -60 LUFS) leaves through the dispositions register.
+- Fold to mono applies to ALL 3D-played audio, ambient channels and strike files alike.
+  The fold is the one lossy step. Off-rate files are resampled to 44100, because the engine hard-rejects any other rate (`SoundRender_Source_loader.cpp`).
+  The source blob is kept as an audit column only, never read by the master.
+- Two schedulers play a channel, and the master evaluates each sound at the farthest place either one puts it.
+  System B, vanilla's `sound_ambient.script`, places a dynamic channel at `random(min', max) / 2` plus the channel height.
+  System A, the engine bed, places a preset's `sound_channels` at `randF(min, max)` and 10 m up (`GamePersistent.cpp`).
+- The max is the farthest referencing channel's `max_distance`. A sound any bed plays gets a 300 m max instead, vanilla's own value on its trx beds and the engine default.
+  The min is a crest-keyed ratio (0.40-0.60) of the farthest placement, capped below the max.
+  Strike files are excluded. The engine overrides their range per strike (see Thunder below), and blob distances do nothing there.
+- Every bed-played file is typed `WORLD_AMBIENT` in its blob, like vanilla's own beds. Beds take the type from the blob (`Environment_misc.cpp`).
+  Only that type skips the occlusion ray (`SoundRender_Emitter_FSM.cpp`), and a wall then never muffles the weather.
+- The loudness band is per class, both arms lossless and partial. A bed sits between -30 and -24 dB delivered, a single cue between -36 and -28.
+  A floor lifts a file whose delivered loudness at its placement sits below the band, and a ceiling lowers a file above it. A file is only ever in one arm.
+- Dead audio is reported, never auto-deleted. A file at or under -60 LUFS leaves only by a hand reject.
 
 All blob edits are lossless (audio pages byte-identical). The fold is the only re-encode, and it exists because the engine only positions mono.
 
 Blob contract (the engine-read fields).
 The comment is a `0x0003` X-Ray struct of five fields: `min`, `max`, `base_volume`, `game_type`, `max_ai_dist` (`SoundRender_Source_loader.cpp`, the `0x0003` branch).
-The deploy (`_write_blob`) writes all five, and the engine reads exactly these. Nothing written is ignored, and nothing read is left unset.
+The rewrite sets all five, and the engine reads exactly these. Nothing written is ignored, and nothing read is left unset.
 `min`, `max`, and `base_volume` carry the leveling above (linear rolloff plus the OpenAL inverse keyed on `min`, and the `base_volume` gain multiplier, `SoundRender_Emitter_FSM.cpp`).
-`game_type` is written 0, and `max_ai_dist` is written equal to `max`. Both are inert for our content.
-The play-time sound type overrides the blob `game_type` (`SoundRender_Core.cpp`).
-`max_ai_dist` only sets NPC hearing range, which our `no_sound`-type plays never trigger (`SoundRender_Emitter.cpp`).
+`game_type` is `WORLD_AMBIENT` on every bed-played file and keeps the file's own value elsewhere. `max_ai_dist` is written equal to `max`.
+A script play overrides the blob `game_type` (`SoundRender_Core.cpp`), and System B plays are script plays.
+`max_ai_dist` only sets NPC hearing range, and a bed has no owner to make NPCs hear it (`SoundRender_Emitter.cpp`).
 `max_ai_dist` is set to `max` only to satisfy the loader's `>= 0.1` assert.
-It is the one engine-read lever left deliberately unused. A `world_ambient` play with an owner would make NPCs hear the sound, which ambience does not want.
 
 ## Thunder
 
@@ -127,7 +129,7 @@ Thunder has two homes, matching the engine's two systems:
 2. Strike claps: the engine thunderbolt system.
    The weather mod (Atmospherics) drives timing per weather cycle (`thunderbolt_collection`, `thunderbolt_period`, `thunderbolt_duration` in `weathers/w_*.ltx`).
    The collections resolve to sections in `thunderbolts.ltx`, and each section's `sound =` names a path under `sounds\nature\`.
-   DiegeticAmbience deploys its curated strike recordings AT those vanilla paths (`deploy_extra` in the recipe).
+   DiegeticAmbience ships its curated strike recordings AT those vanilla paths, under `sounds\nature\`.
    The best claps play with no config, and the weather mod's tuning stays intact.
    The engine plays each strike positioned at the bolt with a speed-of-sound delay and a per-strike attenuation range
    (`thunderbolt.cpp`: `snd.play_no_feedback(0, 0, dist / 300.f, &pos, 0, 0, &Fvector2().set(dist / 2, dist * 2.f))`).
@@ -146,14 +148,12 @@ Where the keys survive (the 304 field preset), the sounds play as silence.
 DiegeticAmbience restores both halves.
 Every outdoor state of every preset wires `effect_0..9`.
 The DLTX overlay `mod_effects_diegeticambience.ltx` points the ten `sound =` keys at vanilla's proven trx recordings, winning over whichever `effects.ltx` is active.
-Those recordings are the same class of repair as the surge beds.
-Their only source is vanilla, which the channel resolver skips, and no channel reads the override.
-So `deploy_extra` rows (the recipe) carry the nine `ambient\trx\nature\wind_gust` files the override names.
+The tree ships the nine `ambient\trx\nature\wind_gust` files the override names. No channel lists them, and verify accepts them because the override names them.
 Underground presets keep empty `effects` (the play block never fires indoors, vanilla parity).
 
 The surge beds are the same class of repair.
-`blowout_channels.ltx` inherited `blowout_impacts`, `blowout_rumble`, `blowout_ambient` and `blowout_flare` muted, because their only source is vanilla itself, which the resolver skips.
-Explicit `deploy_extra` rows (the recipe) now pull the 21 vanilla `ambient\trx\blowout` recordings and the four pools play again during emissions.
+`blowout_channels.ltx` inherited `blowout_impacts`, `blowout_rumble`, `blowout_ambient` and `blowout_flare` muted, because their only source was vanilla itself.
+The tree now ships the 21 vanilla `ambient\trx\blowout` recordings plus later surge recordings, and the four pools play again during emissions.
 
 ## Deduplication
 
@@ -179,7 +179,6 @@ An ambient sound reaches the player through five links, and the verifier proves 
    The vocabulary is the AtmosFear set: day, morning, evening, night, rain, rain_day, rain_night, storm_day, storm_night, tuman, tuman_night, and indoor_underground.
    Stock Anomaly 1.5.3 and Atmospherics emit exactly this set (both weather trees swept 2026-09-03), so the mod runs on either with no variant.
    The presets also carry `pre_storm` and `tuman_day` sections, the vanilla preset shape. No stock or Atmospherics keyframe emits them, so they stay inert until a weather mod uses those states.
-   Weather mechanics of record: `stalker-dev/doc/library/anomaly/internals/weather-system.md`.
 2. Level to preset: `ambients/<level>.ltx` is a one-line `#include` binding each map to a preset.
 3. Preset to channels, per state: one section per weather state with `sound_channels` (the bed) and `sound_channels_dynamic` (the layers).
 4. Channel to pool: `ambient_channels/backgrounds.ltx` and `sound_channels.ltx`.
@@ -193,14 +192,13 @@ The links below those three are weather-mod-independent. Variants for other weat
 
 `verify` emits the gate ledger, and the build fails unless every gate is clean:
 
-1. No orphan file: every deployed ogg sits in some channel's pool or the strike deploy set.
+1. No orphan file: every shipped ogg sits in some channel's pool, the strike set or the effect override. A new sound stays an orphan until it is wired or rejected.
 2. No orphan channel: defined but unreferenced (informational, flagged as dead weight for the curator).
 3. No dangling channel ref: every channel named in a preset is defined.
 4. No missing sound path: every pool entry resolves to audio on disk.
 5. Level routing closed: every map binds a preset, underground maps to underground presets.
 6. Weather matrix full: every preset defines a section for every state the active weather mod emits.
-7. Retention: every spine ambience-scope file and every file of an adopted folder is referenced or covered by a dispositions row.
-   All other corpus content carries folder-level dispositions. Anything unaccounted is a FAIL.
+7. Record closure: every row has its ogg, every ogg has its row, and every ogg's audio hash matches its row. A hand-edited file fails.
 8. Density: per state, the events-per-minute budget holds and the entry-burst stagger holds.
    Armed 2026-09-09 with per-state-class density budgets (the tool's ambience gate pack) as loud regression ceilings that guard against a future blowout.
    They sit looser than the ear-calibrated budget.
@@ -213,7 +211,7 @@ The links below those three are weather-mod-independent. Variants for other weat
     The hand-authored exclusion overlay carries `>sounds = ambient\no_sound` on every touched channel.
     A fully-excluded channel then plays silence.
     A System A bed with no `sounds` key is a load failure (`Environment_misc.cpp`), which is exactly what that guard prevents.
-    The gate FAILs only if a touched channel lacks the guard, and it reports fully-silenced channels as the Spooks-owned boundary picture.
+    The gate FAILs only if a touched channel lacks the guard. It runs when verify is given the horror layer's overlay file.
 12. Level coverage: every playable base-game level (`LEVELS_BASE`, the `game_maps_single.ltx` set minus `fake_start`) binds an `ambients/<level>.ltx`.
     An unbound level plays vanilla wiring through the MO2 VFS (the 9 labs, found 2026-09-03) or a bare `ambients.ltx` fallback with no dynamic layers (`y04_pole`).
     Bindings outside the base set (extended maps) are reported, not failed.
@@ -239,27 +237,24 @@ Standalone, nothing is excluded and the full dread layer plays. With the horror 
 
 ## The mastering mill
 
-`sound-manager` (stalker-dev) reads the hand-written config as its input and does only what needs a machine, as a pure transform SRC + BASE -> TARGET. SRC is a source pack, read at intake only. BASE is this mod's current tree + record, read only. TARGET is `sound-manager/target/DiegeticAmbience`: every write lands there, the tool NEVER writes this repo, and you copy TARGET's `gamedata` into the mod by hand once it is right. Two commands are AUTOMATIC, both writing only TARGET:
+The build tool reads the hand-written config as its input and does only what needs a machine.
+Every command takes a source tree and a target tree and names no mod. Copying a finished target over this repo is a manual step.
 
-- `intake DiegeticAmbience [<Source>]` - the only source-bound step. It pulls config-referenced files missing from the tree (registry order, pick_skip honored, licence-gated per
-  source). On the way in it folds stereo to mono and resamples off-rate. It captures the AUTHOR blob and the measured facts onto the record row before
-  anything strips them. It then proves retention. Each present source's ambience-scope files are all referenced or covered by a recipe disposition row. A gap fails the intake.
-  After the gate the pack is deletable, TARGET holds the author values, and you promote it into the mod by hand.
-- `refresh DiegeticAmbience` - the forever step, no packs. It never rewrites the authored config.
-  It reports a channel that lists one sound twice (that doubles the sound's odds, a curation call) and fails any pool line over the ini buffer cap.
-  A reference to an undefined channel fails verify.
-  Then it recomputes every wired row's blob from measurement, reading no author value: max = the channel reach (felt x 2 = the farthest referencing channel's max_distance), min = the measured crest floor, and base_volume pulled into the per-category floor/ceiling band off the measured LUFS, so a constant tunes in both directions and nothing ratchets;
-  measured values are computed once per audio identity and re-measured only on `--remeasure`. Three row classes: master-skipped (strike/emission/staged) and channel-unwired rows keep
-  their bytes unchanged, and every wired row is mastered the same way, with no author-blob gate.
-  It also fills each row's placement - `band` (`ch_min`/`ch_max`), `indoor`, `height` - from the authored channel LTX (ambience's placement authority), so the record carries the identical placement columns DiegeticDread stores; a sound in no channel (a strike/effect/surge deploy) has none.
-  Then it regenerates `da_sound_metadata.script` - the record itself, the uniform sound schema (`core/manifest.py`): the trace display (`lufs`/`crest`/`peak`/`bv`/`mn`/`mx` plus `ch_min`/`ch_max`/`h`/`indoor`) beside the persisted tool columns the game never reads.
-  The engine never reads the file at all. The mod loads it once into `xsound.load_meta` for the delivered-loudness readout.
-  It also emits the dead and fingerprint curator reports, the gate ledger above, and the reach audit (bed-aware: System A places at random(min,max), System B at the /2 transform).
-  A double refresh writes nothing.
-- `stage <Source>:<folder>` / `unstage` - a candidate family under `sounds/stage/` for in-game audition before it is picked.
-- `import <Source>` - the one-time config baseline from a source pack's own sound-routing config, the bootstrap for a fresh variant. It refuses over an existing config.
-
-The rest is MANUAL, by hand: promote (copy `target/DiegeticAmbience/gamedata` into this repo when satisfied), and `reject <id>` (delete one sound you flagged by ear, its ogg and row). No reject memory is kept, so a later intake can re-add that audio - re-judge by ear, and record a deliberate rejection in the private history if it matters. `stage`/`unstage`/`import` above are manual curation too; only `intake` and `refresh` are automatic.
+- intake reads a sound pack, and it is the only command that does. It folds stereo to mono and resamples off-rate files, then dedups inside the pack and against the tree by audio alone.
+  Every net-new sound goes into the tree at its original relative path, listed by no channel. Verify fails while any such file remains.
+  Intake leaves out and reports a path that the tree already holds with different audio. A failed intake writes nothing, and a second intake of the same pack changes nothing.
+- wire: the curator lists each new sound in a channel of the authored config, picked from the source pack's own wiring and the analysis report, or rejects it.
+  A sound can also join a new channel, and the presets then list that channel in the states it suits.
+- refresh never reads a pack and never rewrites the authored config.
+  It reports a channel that lists one sound twice, since that doubles the sound's odds, and fails any pool line over the ini buffer cap.
+  It recomputes every wired row's blob from measurement under the model above. A constant tunes in both directions, and nothing ratchets.
+  Measured values are computed once per audio identity. Strike files and staged files keep their bytes.
+  It fills each row's placement columns (`ch_min`/`ch_max`, `indoor`, `h`) from the authored channel config, then regenerates `da_sound_metadata.script`.
+  The engine never reads that file. The mod loads it once into `xsound.load_meta` for the delivered-loudness readout.
+  It ends with verify (the gate ledger above) and the delivered-loudness audit, and a second refresh writes nothing.
+- reject deletes one sound, its ogg and its row. The tool keeps no reject memory, and a later intake can bring the audio back for a new judgement.
+- stage and unstage put a candidate family under `sounds/stage/` for an in-game audition. Verify fails while a stage tree is present.
+- import is the one-time config baseline from a pack's own sound-routing config, the bootstrap for a fresh variant. It refuses over an existing config.
 
 The measured surface. One `ffmpeg` `astats`+`ebur128` pass reads `lufs` (integrated), `crest` (peak minus RMS), and `peak` (true peak). `ffprobe` reads `dur`, `sample_rate`, and `channels`.
 Chromaprint reads the fingerprint `fp`, and the fold reads mid/side RMS. Each drives one build step: `lufs`/`crest` the loudness band and the crest-keyed min floor, `sample_rate` the 44100 resample,
@@ -273,7 +268,7 @@ The old tool read its own last output as the author base, so floors could only r
 
 - I1 Scope. Nature/weather ambience, the ambient dread layer, storm thunder. Directed cues are the horror layer's. Emission and psi-storm are their own systems. Strike timing is the weather mod's.
 - I2 The config is authored. Machines level, report, and prove. They never choose content.
-- I3 Spine completeness. Every ambience-scope file of the spine, across all its sound systems, is accounted for. Nothing dies silently.
+- I3 Spine completeness. Every ambience-scope file of the spine, across all its sound systems, was kept, re-homed or rejected with a reason in the private history. Nothing dies silently.
 - I4 One channel, one voice. Single-source pools by default, coherence verified, 15-25 target, 40 cap, roles-menu admission.
 - I5 Density is conserved. The per-state budget and the entry-burst stagger are gates, not advice.
 - I6 Audible by measurement. Mono fold, crest-inverted min floor, per-category loudness band, placement caps, scoped by playback path.
@@ -281,12 +276,11 @@ The old tool read its own last output as the author base, so floors could only r
 - I8 Deduplicate twice, warn, let the curator resolve.
 - I9 Config closed. The full gate set passes or the build fails.
 - I10 Weather-mod-bound at three vocabularies (ambient states, collection names, effect ids). Stock Anomaly and Atmospherics share all three. Other weather mods need a sweep of all three first.
-- I11 Licensed, one record. The record is resources-alone (no per-sound origin) and is ONE file - `da_sound_metadata.script`, the uniform sound schema shared with DiegeticDread and the voice corpus, the same file the mod loads; no manifest, no measurement cache. `licensing.md` records the basis for every source, and the readme credits every author.
-- I12 No audible sound is dropped before the user auditions it.
-  Measurement only FLAGS a drop candidate (too long, off-character, past a spectral or loudness bound). It never excludes an audible file on its own.
-  The flagged list is loaded into `ui_da_player` as a playlist, the user auditions it, and only then does a file get a DISPOSITIONS `excluded` row.
-  The sole mechanical removals are files that cannot be auditioned. Those are dead-silent (below the LUFS floor), off sample rate, corrupt, or an anti-phase pair that folds to silence.
-  This invariant is shared with the directed horror layer.
+- I11 Licensed, one record. The record keeps no per-sound origin and is ONE file, `da_sound_metadata.script`, the same file the mod loads.
+  `licensing.md` records the basis for every source, and the readme credits every author.
+- I12 No audible sound leaves by a rule. Measurement only flags candidates: the dead report, the faint list and the analysis lists.
+  Each loads into `ui_da_player` as a playlist, and a file leaves only by a hand reject.
+  Intake reports a file whose fold or resample fails and never ships it. That is the one mechanical removal.
 
 ## Scripts: dependency gate, MCM, diagnostics, player (no gameplay)
 
