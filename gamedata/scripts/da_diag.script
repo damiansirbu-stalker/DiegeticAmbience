@@ -9,10 +9,17 @@ local WEATHER_STATES = { "day", "morning", "evening", "night", "rain", "rain_day
 local CHANNELS_FILE = "environment\\sound_channels.ltx"
 local BACKGROUNDS_FILE = "environment\\ambient_channels\\backgrounds.ltx"
 local INDEX_FILES = { CHANNELS_FILE, BACKGROUNDS_FILE }
+-- The two delivered-dB floors the build masters against: a path holding a BED_KEYS word is a bed, every other a one-shot.
+local AUDIBLE_FLOOR = -36.0
+local BED_FLOOR = -30.0
+local BED_KEYS = { wind = true, storm = true, rain = true, thunder = true, tuman = true, background = true,
+                   ambient_forest = true, ambient_swamp = true, drone = true, rumble = true }
+local BED_KEY_LENGTHS = { 4, 5, 6, 7, 10, 13, 14 }
 
 -- The runtime trace's file -> channel map, plus the transient targets the section walk writes through.
 local _file_index = nil
 local _index_target, _index_ini
+local _floor_by_path = {}
 
 local function _is_enabled()
     return (da_debug and da_debug.is_on())
@@ -92,14 +99,33 @@ local function _get_channel(file)
     return _file_index[_get_key(file)]
 end
 
--- Predicted-audibility floor for the trace token (delivered-dB), the one-shot loudness floor the build masters against.
-local AUDIBLE_FLOOR = -36.0
+--- Whether a lowercase path holds a BED_KEYS word, each window of each key length looked up in the set.
+local function _is_bed_path(path)
+    for k = 1, #BED_KEY_LENGTHS do
+        local len = BED_KEY_LENGTHS[k]
+        for i = 1, #path - len + 1 do
+            if BED_KEYS[path:sub(i, i + len - 1)] then return true end
+        end
+    end
+    return false
+end
+
+--- The floor a file masters against, cached per path.
+local function _get_floor(file)
+    local path = tostring(file):lower()
+    local floor = _floor_by_path[path]
+    if not floor then
+        floor = _is_bed_path(path) and BED_FLOOR or AUDIBLE_FLOOR
+        _floor_by_path[path] = floor
+    end
+    return floor
+end
 
 --- Predicted audibility from the delivered loudness: SILENT (no reach), FAINT (below the floor), AUD.
-local function _get_verdict(dlv)
+local function _get_verdict(dlv, floor)
     if not dlv then return "?" end
     if dlv <= -119 then return "SILENT" end
-    if dlv < AUDIBLE_FLOOR then return "FAINT" end
+    if dlv < floor then return "FAINT" end
     return "AUD"
 end
 
@@ -115,7 +141,7 @@ local function _build_detail(file, pos)
     return string_format(" dist=%s dlv=%s vd=%s lufs=%.0f crest=%.0f peak=%s bv=%.2f env=%s",
         dist and string_format("%.0f", dist) or "-",
         dlv and string_format("%.0f", dlv) or "-",
-        _get_verdict(dlv),
+        _get_verdict(dlv, _get_floor(file)),
         prof.lufs or 0, prof.crest or 0,
         prof.peak and string_format("%.0f", prof.peak) or "-", prof.bv or 1.0, env)
 end

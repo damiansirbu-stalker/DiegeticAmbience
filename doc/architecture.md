@@ -295,12 +295,15 @@ The old tool read its own last output as the author base, so floors could only r
   The trace subscribes through the xlibs seam registry to the 6 demonized sound callbacks (bed, script-sound, effect, thunderbolt, rain, level-music).
   It logs each fire with its resolved channel, file, and delivered acoustics (distance to the actor, delivered dB, lufs, crest).
   Those come from the same `get_meta` / `compute_delivered_loudness` calls the player uses, gated on `da_debug.is_on()`.
+  The `vd` token grades each sound against the floor the build masters it against: -30 for a bed, which a path holding a bed word marks (wind, storm, rain and the rest), and -36 for every other sound.
   `da_dedup` logs its own decision on the same channel (repeat replaced with which sibling, or silenced). A session log then shows what played, how loud and far, and what the dedup did.
   It is a no-op on a stock exe, where the seam returns false and stays detached. It only observes and returns nil.
   This is the runtime counterpart to the static wiring dump, and the ground truth for the density and repetition rulings.
 - `ui_da_player.script` is the curation instrument, mirroring the horror layer's player shape.
   It is a keyboard-owning modal on PageUp (the horror layer keeps PageDown), gated by the MCM sound_player toggle.
-  It browses BY CHANNEL from the resolved `sound_channels.ltx` and auditions inside the channel's band (at its min, half its max, and 0.9 of its max), at-ear, and at fixed distances.
+  It browses BY CHANNEL from the resolved `sound_channels.ltx` and auditions where the game plays the channel, at-ear, and at fixed distances.
+  The level's presets say which scheduler plays a channel: a Lua play at random(min', max) / 2 up the channel height, a bed at randF(min, max) 10 m up, or both.
+  The near and far modes stand at the nearest and the farthest of those plays, and the felt mode at the middle of the Lua roll.
   Auditions play through `da_dedup.play_unfiltered`, past the repeat veto, and each plays exactly the sound picked.
   It steps within pools and staged candidate families for A/B rulings.
   Each audition shows a delivered-loudness readout (measured LUFS, base_volume, est. dB at the audition distance) from `xsound.get_meta` / `compute_delivered_loudness`, fed by `da_sound_metadata`.

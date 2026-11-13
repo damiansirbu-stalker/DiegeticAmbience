@@ -2,7 +2,7 @@
 
 local table_sort, string_format, table_concat = table.sort, string.format, table.concat
 local string_gmatch, tostring = string.gmatch, tostring
-local RegisterScriptCallback = RegisterScriptCallback
+local math_sqrt, RegisterScriptCallback = math.sqrt, RegisterScriptCallback
 
 local NOTES_FILE = "diegeticambience_notes.txt"
 local PGUP_KEY   = 201
@@ -29,6 +29,8 @@ local MODES = {
 }
 --- Placement for staged families and playlist entries that resolve to no channel: the wind-band values.
 local STAGE_MIN, STAGE_MAX, STAGE_HEIGHT = 30, 130, 10
+--- How far above the camera xray places a bed (GamePersistent.cpp:347).
+local BED_LIFT = 10
 local DEFAULT_MODE = 2
 
 local _channels = nil
@@ -45,7 +47,7 @@ local _box      = nil
 local _built    = false
 
 --- Collect the channels of one resolved ini (what the engine actually plays, DLTX applied).
-local function _collect_channels(rel, bed)
+local function _collect_channels(rel)
     local ini = ini_file(rel)
     if not (ini and ini.section_for_each) then return end
     ini:section_for_each(function(sec)
@@ -62,9 +64,36 @@ local function _collect_channels(rel, bed)
             min    = ini:r_float_ex(sec, "min_distance") or STAGE_MIN,
             max    = ini:r_float_ex(sec, "max_distance") or STAGE_MAX,
             height = ini:r_float_ex(sec, "height") or 0,
-            bed    = bed,
         }
     end)
+end
+
+--- Add every channel name one preset key lists in a resolved ambient ini to the set out, keyed lowercase.
+local function _collect_preset_channels(rel, key, out)
+    local ini = ini_file(rel)
+    if not (ini and ini.section_for_each) then return end
+    ini:section_for_each(function(sec)
+        if not ini:line_exist(sec, key) then return end
+        for tok in string_gmatch(ini:r_string_ex(sec, key) or "", "[^,]+") do
+            out[tok:match("^%s*(.-)%s*$"):lower()] = true
+        end
+    end)
+end
+
+--- Set each channel's bed flag from the presets' sound_channels and its lua flag from the level's sound_channels_dynamic.
+--- A channel no preset names keeps the Lua placement.
+local function _apply_schedulers()
+    local beds, dynamic = {}, {}
+    local level_rel = "environment\\ambients\\" .. level.name() .. ".ltx"
+    _collect_preset_channels("environment\\ambients.ltx", "sound_channels", beds)
+    _collect_preset_channels(level_rel, "sound_channels", beds)
+    _collect_preset_channels(level_rel, "sound_channels_dynamic", dynamic)
+    for i = 1, #_channels do
+        local ch = _channels[i]
+        local key = ch.name:lower()
+        ch.bed = beds[key] or false
+        ch.lua = dynamic[key] or not ch.bed
+    end
 end
 
 --- Add one channel's pool paths to the reverse index, each keyed lowercase to its channel name.
@@ -85,8 +114,9 @@ end
 
 local function _build_index()
     _channels = {}
-    _collect_channels("environment\\sound_channels.ltx", false)
-    _collect_channels("environment\\ambient_channels\\backgrounds.ltx", true)
+    _collect_channels("environment\\sound_channels.ltx")
+    _collect_channels("environment\\ambient_channels\\backgrounds.ltx")
+    _apply_schedulers()
     table_sort(_channels, function(left, right) return left.name < right.name end)
     _build_path_index()
     _staged = {}
@@ -107,7 +137,7 @@ local function _build_stage_row(name)
     local pool = {}
     for i = 1, #files do pool[i] = STAGE_ROOT .. "\\" .. name .. "\\" .. files[i] end
     return { name = STAGE_ROOT .. "/" .. name, pool = pool,
-             min = STAGE_MIN, max = STAGE_MAX, height = STAGE_HEIGHT, bed = false }
+             min = STAGE_MIN, max = STAGE_MAX, height = STAGE_HEIGHT, bed = false, lua = true }
 end
 
 --- The browse rows at root: every channel, then every staged family.
@@ -124,17 +154,14 @@ local function _get_tail(path)
 end
 
 --- The channel(s) a playlist path belongs to, first match, for channel-exact play.
---- Returns the joined channel names plus that channel's min, max, and height; an unmatched path gets the stage band.
+--- Returns the joined channel names plus the first channel's row; an unmatched path gets nil (the stage band).
 local function _resolve_channel(path)
     local hit = _by_path and _by_path[path:lower()]
-    if not hit or #hit == 0 then return nil, STAGE_MIN, STAGE_MAX, STAGE_HEIGHT end
+    if not hit or #hit == 0 then return nil, nil end
     for i = 1, #_channels do
-        if _channels[i].name == hit[1] then
-            local ch = _channels[i]
-            return table_concat(hit, "+"), ch.min, ch.max, ch.height
-        end
+        if _channels[i].name == hit[1] then return table_concat(hit, "+"), _channels[i] end
     end
-    return table_concat(hit, "+"), STAGE_MIN, STAGE_MAX, STAGE_HEIGHT
+    return table_concat(hit, "+"), nil
 end
 
 --- The actor position, or nil without an actor (never cache the pointer).
@@ -179,7 +206,7 @@ local function _load_playlist(name)
         end
     end
     return { name = "playlist: " .. name, pool = pool,
-             min = STAGE_MIN, max = STAGE_MAX, height = STAGE_HEIGHT, bed = false, playlist = true }
+             min = STAGE_MIN, max = STAGE_MAX, height = STAGE_HEIGHT, bed = false, lua = true, playlist = true }
 end
 
 --- Open the player when the MCM sound_player toggle allows it (da_player_wnd resolves at call time).
@@ -309,19 +336,39 @@ function da_player_wnd:add_pool_rows(row)
     end })
 end
 
-function da_player_wnd:compute_wired_distance(mode)
-    local near = (_cur and _cur.min) or STAGE_MIN
-    local far = (_cur and _cur.max) or STAGE_MAX
-    if mode.frac == FRAC_MIN then return near end
-    if mode.frac == FRAC_FAR then return far * 0.9 end
-    return far / 2.0
+--- The flat distance and height a 3D mode places the loaded sound at, a wired mode where the channel's schedulers roll.
+--- near and far take the nearest and farthest across the Lua and bed plays, felt the middle of the first play's roll.
+function da_player_wnd:compute_place(mode)
+    if mode.kind == KIND_DIST then return mode.dist, 0 end
+    local mn, mx, height = _cur.min or STAGE_MIN, _cur.max or STAGE_MAX, _cur.height or 0
+    local plays = {}
+    if _cur.lua then
+        local spawn_min = GetEvent("underground") and mn or (mn + mx) / 2
+        if spawn_min > mx then spawn_min = mx end
+        plays[#plays + 1] = { [FRAC_MIN] = spawn_min / 2, [FRAC_FELT] = (spawn_min + mx) / 4, [FRAC_FAR] = mx / 2, height = height }
+    end
+    if _cur.bed then
+        plays[#plays + 1] = { [FRAC_MIN] = mn, [FRAC_FELT] = (mn + mx) / 2, [FRAC_FAR] = mx, height = BED_LIFT }
+    end
+    local pick = plays[1]
+    if not pick then return mx / 2, height end
+    local frac = mode.frac
+    local best = pick[frac] * pick[frac] + pick.height * pick.height
+    for i = 2, #plays do
+        local cand = plays[i][frac] * plays[i][frac] + plays[i].height * plays[i].height
+        if (frac == FRAC_MIN and cand < best) or (frac == FRAC_FAR and cand > best) then
+            pick, best = plays[i], cand
+        end
+    end
+    return pick[frac], pick.height
 end
 
---- The audition mode label; a wired mode appends the distance it resolves to for the loaded sound.
+--- The audition mode label; a wired mode appends the distance and height it resolves to for the loaded sound.
 function da_player_wnd:format_mode()
     local mode = MODES[_mode_i]
     if mode.kind ~= KIND_WIRED or not _cur then return mode.label end
-    return string_format("%s (%.0fm, h%g)", mode.label, self:compute_wired_distance(mode), _cur.height or 0)
+    local flat, h = self:compute_place(mode)
+    return string_format("%s (%.0fm, h%g)", mode.label, flat, h)
 end
 
 function da_player_wnd:format_spot()
@@ -334,10 +381,10 @@ end
 function da_player_wnd:format_place()
     if not _cur then return "place:  (none)" end
     local mode = MODES[_mode_i]
-    local dist = (mode.kind == KIND_DIST) and mode.dist
-        or (mode.kind == KIND_WIRED) and self:compute_wired_distance(mode) or 0
-    return string_format("place:  %s | %.0fm | band %g-%gm | h%g",
-        mode.label, dist, _cur.min or 0, _cur.max or 0, _cur.height or 0)
+    local flat, h = 0, 0
+    if mode.kind ~= KIND_ATEAR then flat, h = self:compute_place(mode) end
+    return string_format("place:  %s | %.0fm | band %g-%gm | h%g%s",
+        mode.label, flat, _cur.min or 0, _cur.max or 0, h, _cur.bed and " | bed" or "")
 end
 
 --- The loudness line: measured LUFS and base_volume from the profile, plus the delivered dB at the audition distance.
@@ -349,7 +396,8 @@ function da_player_wnd:format_loud()
     local mode = MODES[_mode_i]
     local dist
     if mode.kind ~= KIND_ATEAR then
-        dist = (mode.kind == KIND_DIST) and mode.dist or self:compute_wired_distance(mode)
+        local flat, height = self:compute_place(mode)
+        dist = math_sqrt(flat * flat + height * height)
     end
     local eff = xsound.compute_delivered_loudness(prof, dist)
     if not eff then return string_format("loud:   bv %.2f | LUFS --", prof.bv or 1.0) end
@@ -380,13 +428,14 @@ end
 --- Load a sound into _cur from a row and pool path, resolving its placement band.
 --- A playlist entry gets its channel-exact band; a channel or staged entry uses the row's own.
 function da_player_wnd:load_cur(row, path)
+    local name = row.name
     if row.playlist then
-        local ch, mn, mx, h = _resolve_channel(path)
-        _cur = { channel = ch or "no channel", name = _get_tail(path), path = path, min = mn, max = mx, height = h }
-    else
-        _cur = { channel = row.name, name = _get_tail(path), path = path,
-                 min = row.min, max = row.max, height = row.height }
+        local names, ch = _resolve_channel(path)
+        name = names or "no channel"
+        row = ch or row
     end
+    _cur = { channel = name, name = _get_tail(path), path = path,
+             min = row.min, max = row.max, height = row.height, bed = row.bed, lua = row.lua }
 end
 
 function da_player_wnd:start_current()
@@ -396,8 +445,7 @@ function da_player_wnd:start_current()
         da_dedup.play_unfiltered(_cur.path, { s2d = true, volume = 1.0 })
         return
     end
-    local dist = (mode.kind == KIND_DIST) and mode.dist or self:compute_wired_distance(mode)
-    local pos = _compute_position(dist, mode.kind == KIND_WIRED and _cur.height or 0)
+    local pos = _compute_position(self:compute_place(mode))
     if pos then da_dedup.play_unfiltered(_cur.path, { position = pos }) end
 end
 
