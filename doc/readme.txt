@@ -221,7 +221,7 @@ See the Health and JitProfiler links up top for every test and smoke result, and
 
 Sound Mastering:
 
-An EBU R128 scan reads each sound's integrated loudness in LUFS, crest factor, and true peak (ffmpeg ebur128, astats).
+An EBU R128 scan reads each sound's integrated loudness in LUFS, crest factor, and peak (ffmpeg ebur128, astats).
 The build folds stereo to mono and resamples to 44.1 kHz so the engine can place the sound in 3D around you (ffmpeg).
 Exact hash, audio hash, acoustic fingerprint, and waveform cross-correlation catch every duplicate, down to the re-encodes a filename hides (md5, Chromaprint, PCM xcorr).
 Neural tagging trained on AudioSet names what each sound is (PANNs CNN14).
