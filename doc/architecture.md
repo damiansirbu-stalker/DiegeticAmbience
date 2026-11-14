@@ -59,6 +59,7 @@ Vanilla is the reference, and the invariant is hard (ruled 2026-11-14).
 On every level and weather state, the Lua channels start 1.0x to 1.3x as many sounds per minute as vanilla's presets start there: never fewer, and at most 30% more.
 Richness comes from the variety of the pools, not from playing more often.
 An extra map from an addon, which vanilla lacks, takes the median vanilla rate of the levels that share its preset.
+The rule measures this mod alone. A horror layer that switches channels off is a separate mod, and those channels do not count against it.
 
 The rate follows vanilla's Lua channel loop in `sound_ambient.script`:
 
