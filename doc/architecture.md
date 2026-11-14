@@ -2,14 +2,14 @@
 
 DiegeticAmbience is the atmosphere soundscape for S.T.A.L.K.E.R. Anomaly. Every map, every weather state, and every hour plays a living, audible ambience.
 It is a curated work. The config is the source of truth, authored by hand: the channels, their pools, the presets, the level bindings.
-Every sound here is mastered by a private build tool. This repo holds its output, the record and the ogg tree, beside the authored config. No source build is named here.
+Every sound here is mastered by a private build tool. This repo holds its output, the record and the ogg tree, beside the authored config.
 `da_sound_metadata.script` is the corpus record AND the runtime trace table, one file. Each row carries the sound's measured facts and keeps no source pack or path.
 Intake brings net-new sounds in. Refresh levels them from measurement, reads no author value, and regenerates the record. The machine never chooses content.
 
 The soundscape carries its own dread layer. Distant mutant cries, far gunfire, spooks, and dark ambience play standalone.
 Ownership splits on what a sound pretends to be (ruled 2026-11-14). A fake sound, a gunshot with no shooter, a monster with no monster, a scream or a spook, is horror.
-Real fauna and nature are this mod's own: small birds, crows, owls, gulls, crickets, insects and frogs, with wind and weather.
-Dogs, cats and rodents are horror, since each is a Zone mutant (blind dog, pseudodog, cat, rat, tushkano). A sound processed to sound eerie is horror too.
+Real fauna and nature are this mod's own: small birds, crows, owls, gulls, crickets, insects, frogs and rodents, with wind and weather.
+Dogs and cats are horror, since each is a Zone mutant (blind dog, pseudodog, cat). A sound processed to sound eerie is horror too.
 Horror stays in this mod too, in its own spook channels. The dread layer here holds only the fake sounds.
 A directed horror layer is optional on top. Its director places dynamic horror cues, and its static exclusion takes the captured sounds out of the base channels at load, so the two never double.
 
