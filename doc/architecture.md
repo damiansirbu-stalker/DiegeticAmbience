@@ -55,14 +55,24 @@ One channel is one voice: one coherent recording family with its own placement (
 
 ## Density
 
-Each state class has an ear-calibrated events-per-minute budget, and the budget is the conserved quantity.
-The state's total emission rate (the sum of `1/mean(period2..3)` across its wired channels) never exceeds it.
-A channel wired into a state is paid for in periods, its own or its neighbours'. A split channel repays in cadence, so a split can never raise the rate.
+Vanilla is the reference, and the invariant is hard (ruled 2026-11-14).
+On every level and weather state, the Lua channels start 1.0x to 1.3x as many sounds per minute as vanilla's presets start there: never fewer, and at most 30% more.
+Richness comes from the variety of the pools, not from playing more often.
+An extra map from an addon, which vanilla lacks, takes the median vanilla rate of the levels that share its preset.
+
+The rate follows vanilla's Lua channel loop in `sound_ambient.script`:
+
+- `reset_settings()` builds the round from the state's distinct defined `sound_channels_dynamic` channels. `update_ambient()` checks one of them per second, and each channel gets one turn per round.
+- A channel re-arms with one of its four periods at random and plays at its first turn after that. Its gap is the round length times the turns the period needs.
+  Its rate is 60 over the mean of its four gaps.
+- A placeholder channel (`ambient\no_sound`) takes a turn and plays nothing.
+- Beds play outside the round and do not count. xray arms a bed's first play from `period0..1` and each later one from the sound's length plus `period2..3`.
+  The timers live in `CEnvAmbient::SSndChannel` (`Environment.h`) and `CGamePersistent::WeathersUpdate()`.
 
 Three further rules keep many channels from becoming a wall:
 
-- Entry burst: `period0..1` govern the first fire after a state change.
-  A state's channels stagger their first-fire windows so a weather transition does not fire everything within 10 seconds.
+- No fixed interval: a channel whose four periods sit within one round plays every round, in the same order as its neighbours, a pulse the ear hears.
+  Its longest period is at least 3x its shortest, and the gaps then differ. Vanilla's `wind_normal` runs 1/20/20/40 s.
 - Distribution over stacking: a channel does not join every state its category appears in.
   Variety spreads across time and place (wind-howl in fog and night, wind-gust in day, the metal groan only in the deep underground presets), and concurrency per state stays flat.
 - Rare-voice channels carry the treasures: periods of 120000-300000 ms put a one-in-a-hundred find in the world at almost no budget cost.
@@ -74,7 +84,7 @@ Division of labor:
 - The curator (assistant) works from evidence: the measurement tables (LUFS, crest, duration, native channel count, rate), the source packs' own wiring, and the dedup maps.
   What channel the pack's author bound a file to is evidence. Ignoring it is how thunderclaps ended up in a wind channel.
   The curator drafts family-level A/B proposals, the channel vocabulary, and the wiring plans.
-- The ear (the user) closes every contested call through the player (`ui_da_player.script`): family vs family for a slot, the contested middle of a ranking, the density budgets per state class.
+- The ear (the user) closes every contested call through the player (`ui_da_player.script`): family vs family for a slot, the contested middle of a ranking, the density ceiling over vanilla.
 - The pipeline masters and proves. It never chooses.
 
 Every rejected sound carries a written reason in the private build history. Nothing is deleted by inference.
@@ -200,11 +210,9 @@ The links below those three are weather-mod-independent. Variants for other weat
 5. Level routing closed: every map binds a preset, underground maps to underground presets.
 6. Weather matrix full: every preset defines a section for every state the active weather mod emits.
 7. Record closure: every row has its ogg, every ogg has its row, and every ogg's audio hash matches its row. A hand-edited file fails.
-8. Density: per state, the events-per-minute budget holds. The entry-burst stagger is a curation rule and has no gate.
-   Armed 2026-09-09 with per-state-class density budgets (the tool's ambience gate pack) as loud regression ceilings that guard against a future blowout.
-   They sit looser than the ear-calibrated budget.
-   The epm sum uses the round-robin cap (60000/mean(period2..3), one channel per round) but still counts no_sound channels, a known over-count the loose ceilings tolerate.
-   Tighten only after the sum excludes silent channels and the ear calibrates real values.
+8. Density: every level and state starts 1.0x to 1.3x vanilla's sounds per minute, counted the way the Density section describes.
+   It runs when the unpacked vanilla tree is on the verify command line, and lists the channels on a fixed interval.
+   The count matches a 40-hour seeded simulation of the loop within 0.7%.
 9. Line cap: no `sounds =` line approaches the 4096-byte ini buffer (`LINE_CAP = 3900`).
 10. Collection coverage: every thunderbolt collection name the active weather mod references resolves in the base game's collection set.
 11. Exclusion simulation: no channel that the directed horror exclusion touches may end EMPTY at load.
