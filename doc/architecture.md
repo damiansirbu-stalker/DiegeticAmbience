@@ -8,8 +8,9 @@ Intake brings net-new sounds in. Refresh levels them from measurement, reads no 
 
 The soundscape carries its own dread layer. Distant mutant cries, far gunfire, spooks, and dark ambience play standalone.
 Ownership splits on what a sound pretends to be (ruled 2026-11-14). A fake sound, a gunshot with no shooter, a monster with no monster, a scream or a spook, is horror.
-Real fauna and nature are this mod's own, such as birds, crows, owls, crickets, insects, frogs, wind and weather.
-Dogs are horror. In the Zone a dog is a blind dog or a pseudodog, a mutant. The dread layer here holds only the fake sounds.
+Real fauna and nature are this mod's own: small birds, crows, owls, gulls, crickets, insects and frogs, with wind and weather.
+Dogs, cats and rodents are horror, since each is a Zone mutant (blind dog, pseudodog, cat, rat, tushkano). A sound processed to sound eerie is horror too.
+Horror stays in this mod too, in its own spook channels. The dread layer here holds only the fake sounds.
 A directed horror layer is optional on top. Its director places dynamic horror cues, and its static exclusion takes the captured sounds out of the base channels at load, so the two never double.
 
 ## Content model
