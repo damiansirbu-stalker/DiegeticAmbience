@@ -213,7 +213,6 @@ The links below those three are weather-mod-independent. Variants for other weat
 7. Record closure: every row has its ogg, every ogg has its row, and every ogg's audio hash matches its row. A hand-edited file fails.
 8. Density: every level and state starts 1.0x to 1.3x vanilla's sounds per minute, counted the way the Density section describes.
    It runs when the unpacked vanilla tree is on the verify command line, and lists the channels on a fixed interval.
-   The count matches a 40-hour seeded simulation of the loop within 0.7%.
 9. Line cap: no `sounds =` line approaches the 4096-byte ini buffer (`LINE_CAP = 3900`).
 10. Collection coverage: every thunderbolt collection name the active weather mod references resolves in the base game's collection set.
 11. Exclusion simulation: no channel that the directed horror exclusion touches may end EMPTY at load.

@@ -83,6 +83,12 @@ The Dark Signal configs strip its keys, and the Atmospherics effects file points
 Here the ten effects fire in every outdoor state, and their sounds are pinned to recordings proven present, on stock Anomaly and under Atmospherics alike.
 During emissions the four vanilla surge bed channels play again, where the ancestors of this configuration had muted them.
 
+The game plays its rotating ambient layers through one script loop that checks one channel per second.
+A channel whose timer runs shorter than that cycle plays on every cycle, always in the same order as its neighbours, and the ear hears a pulse.
+Here no channel pulses. Each channel's four timers spread at least threefold, and the gaps between its sounds differ.
+The density follows vanilla. Every map and weather starts at least as many sounds per minute as vanilla, and at most 30 percent more.
+The build checks that rate against vanilla's own configuration on every map and weather, counted the way the game's loop runs.
+
 ------------------------------------------------------------------------------------------------------------------------------------
 
 Sources
